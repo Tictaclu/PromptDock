@@ -4,6 +4,10 @@
   "description": "Manage, reuse, and track your favorite AI prompt templates right from the VS Code sidebar.",
   "version": "1.0.0",
   "publisher": "promptdock",
+  "author": {
+    "name": "Jianfeng Lu",
+    "email": "jeff.lu@accenture.com"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
