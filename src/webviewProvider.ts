@@ -650,14 +650,16 @@ function renderHtml(cspSource: string): string {
     function renderToolbar(sectionKey, currentQuery) {
       const container = el('div', 'toolbar-container');
 
-      const sourceData = state.sources.find((s) => s.source === sectionKey);
-      const syncLabel = sourceData ? 'Sync from ' + sourceData.icon + ' ' + sourceData.label : 'Sync Prompts';
-      const syncBtn = el('button', 'sync-btn');
-      syncBtn.title = sourceData ? 'Re-fetch and refresh prompts from ' + sourceData.label : 'Refresh the prompt library';
-      syncBtn.appendChild(el('span', 'sync-icon', '↻'));
-      syncBtn.appendChild(el('span', '', syncLabel));
-      syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
-      container.appendChild(syncBtn);
+      if (sectionKey !== 'templates') {
+        const sourceData = state.sources.find((s) => s.source === sectionKey);
+        const syncLabel = sourceData ? 'Sync from ' + sourceData.icon + ' ' + sourceData.label : 'Sync Prompts';
+        const syncBtn = el('button', 'sync-btn');
+        syncBtn.title = sourceData ? 'Re-fetch and refresh prompts from ' + sourceData.label : 'Refresh the prompt library';
+        syncBtn.appendChild(el('span', 'sync-icon', '↻'));
+        syncBtn.appendChild(el('span', '', syncLabel));
+        syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
+        container.appendChild(syncBtn);
+      }
 
       const bar = el('div', 'toolbar');
       const search = el('div', 'search');
