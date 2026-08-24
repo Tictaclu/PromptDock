@@ -332,10 +332,12 @@ function renderHtml(cspSource: string): string {
     border-radius: 4px;
     color: var(--vscode-foreground);
     cursor: pointer;
-    font-size: 15px;
+    font-family: inherit;
+    font-size: 12px;
     line-height: 1;
-    padding: 3px 7px;
+    padding: 4px 8px;
     opacity: 0.7;
+    white-space: nowrap;
   }
   .new-window-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
   .group { margin-bottom: 2px; }
