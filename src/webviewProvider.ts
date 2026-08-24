@@ -853,9 +853,9 @@ function renderPanelHtml(cspSource: string): string {
       copyBtn.title = 'Copy prompt to clipboard';
       copyBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }));
 
-      const insertBtn = el('button', 'action-btn primary', 'Insert');
-      insertBtn.title = 'Insert prompt at cursor position';
-      insertBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'insert' }));
+      const insertBtn = el('button', 'action-btn primary', 'Add To Template');
+      insertBtn.title = 'Save this prompt to My Templates';
+      insertBtn.addEventListener('click', () => vscode.postMessage({ type: 'addTemplate', id: row.id }));
 
       actions.appendChild(copyBtn);
       actions.appendChild(insertBtn);
@@ -1008,6 +1008,14 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
       const row = findPromptById(storage, message.id);
       if (row) {
         await usePromptContent(row.name, row.content, message.action);
+      }
+      return;
+    }
+    if (message?.type === 'addTemplate') {
+      const row = findPromptById(storage, message.id);
+      if (row) {
+        await storage.createTemplate(row.name, row.content);
+        vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" added to My Templates`, 3000);
       }
     }
   });
