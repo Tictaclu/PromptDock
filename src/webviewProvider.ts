@@ -1161,7 +1161,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       return card;
     }
 
-    function renderFolderSection(icon, title, rows, key) {
+    function renderFolderSection(icon, title, rows, key, folderId?) {
       const filtered = rows.filter((r) => matchesRow(r, query));
       if (query && filtered.length === 0) return null;
 
@@ -1173,6 +1173,13 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       titleEl.appendChild(el('span', 'chevron', '▾'));
       titleEl.appendChild(el('span', '', icon + ' ' + title));
       titleEl.appendChild(el('span', 'badge', String(query ? filtered.length : rows.length)));
+      const newPromptBtn = el('button', 'folder-sync-btn', '+');
+      newPromptBtn.title = 'New prompt in this folder';
+      newPromptBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        vscode.postMessage({ type: 'newTemplate', folderId });
+      });
+      titleEl.appendChild(newPromptBtn);
       titleEl.addEventListener('click', () => {
         section.classList.toggle('collapsed');
         if (section.classList.contains('collapsed')) expandedSections.delete(key); else expandedSections.add(key);
@@ -1254,7 +1261,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
 
         for (const folder of state.templates.folders) {
           const rows = [...folder.presets, ...folder.templates];
-          const sec = renderFolderSection('📁', folder.name, rows, 'folder:' + folder.id);
+          const sec = renderFolderSection('📁', folder.name, rows, 'folder:' + folder.id, folder.id);
           if (sec) app.appendChild(sec);
         }
         if (state.templates.unfiled.length > 0) {
@@ -1392,6 +1399,17 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
         }
         await storage.createTemplate(base.name, content, folderId);
         vscode.window.setStatusBarMessage(`PromptDock: "${base.name}" added to My Templates`, 3000);
+      }
+      return;
+    }
+    if (message?.type === 'newTemplate') {
+      const name = await vscode.window.showInputBox({
+        prompt: 'New prompt name',
+        placeHolder: 'e.g. My Prompt',
+        validateInput: (v) => v.trim() ? null : 'Name cannot be empty',
+      });
+      if (name?.trim()) {
+        await storage.createTemplate(name.trim(), '', message.folderId as string | undefined);
       }
       return;
     }
