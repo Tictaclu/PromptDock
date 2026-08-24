@@ -1051,7 +1051,6 @@ function renderPanelHtml(cspSource: string): string {
         if (!card) return;
         card.scrollIntoView({ behavior: 'instant', block: 'nearest' });
         card.classList.add('highlight');
-        setTimeout(() => card.classList.remove('highlight'), 2000);
       });
     }
 
