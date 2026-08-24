@@ -827,8 +827,10 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
   }
 }
 
-function renderPanelHtml(cspSource: string): string {
+function renderPanelHtml(cspSource: string, initialState?: WebviewState, initialSection?: string): string {
   const scriptNonce = nonce();
+  const stateJson = initialState ? JSON.stringify(initialState) : 'null';
+  const sectionJson = initialSection ? JSON.stringify(initialSection) : 'null';
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1033,8 +1035,8 @@ function renderPanelHtml(cspSource: string): string {
   <div id="app"></div>
   <script nonce="${scriptNonce}">
     const vscode = acquireVsCodeApi();
-    let state = null;
-    let sectionKey = null;
+    let state = ${stateJson};
+    let sectionKey = ${sectionJson};
     let query = '';
 
     function el(tag, cls, text) {
@@ -1201,6 +1203,8 @@ function renderPanelHtml(cspSource: string): string {
     const addedPromptIds = new Set();
     const expandedSections = new Set();
 
+    render();
+
     function render() {
       const app = document.getElementById('app');
       app.innerHTML = '';
@@ -1307,8 +1311,6 @@ function renderPanelHtml(cspSource: string): string {
       }
       if (msg.type === 'scrollTo') scrollToPrompt(msg.promptId);
     });
-
-    vscode.postMessage({ type: 'ready' });
   </script>
 </body>
 </html>`;
@@ -1338,22 +1340,15 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
   sharedSectionPanel = panel;
-  panel.webview.html = renderPanelHtml(panel.webview.cspSource);
+  panel.webview.html = renderPanelHtml(panel.webview.cspSource, buildState(storage), sharedSectionCurrentSection);
 
   const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section: sharedSectionCurrentSection });
-  let pendingScrollId = scrollToId;
   const changeListener = storage.onDidChange(post);
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
 
+  if (scrollToId) setTimeout(() => panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId }), 150);
+
   panel.webview.onDidReceiveMessage(async (message) => {
-    if (message?.type === 'ready') {
-      post();
-      if (pendingScrollId) {
-        panel.webview.postMessage({ type: 'scrollTo', promptId: pendingScrollId });
-        pendingScrollId = undefined;
-      }
-      return;
-    }
     if (message?.type === 'use') {
       const base = findPromptById(storage, message.id);
       if (base) {
