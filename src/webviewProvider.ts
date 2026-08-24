@@ -464,17 +464,15 @@ function renderHtml(cspSource: string): string {
       if (row.meta) normal.appendChild(el('div', 'row-meta', row.meta));
 
       const actions = el('div', 'actions');
-      const copyBtn = el('button', '', '⧉');
-      copyBtn.title = 'Copy to Clipboard';
-      copyBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }); });
-      actions.appendChild(copyBtn);
+
+      if (isImported) {
+        const copyBtn = el('button', '', '⧉');
+        copyBtn.title = 'Copy to Clipboard';
+        copyBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }); });
+        actions.appendChild(copyBtn);
+      }
 
       if (isTemplate) {
-        const editBtn = el('button', '', '✏');
-        editBtn.title = 'Edit this template';
-        editBtn.addEventListener('click', (e) => { e.stopPropagation(); r.classList.add('editing'); });
-        actions.appendChild(editBtn);
-
         const delBtn = el('button', '', '🗑');
         delBtn.title = 'Move to Deleted folder';
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'deleteTemplate', id: row.id }); });
@@ -984,6 +982,35 @@ function renderPanelHtml(cspSource: string): string {
   }
   .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
   .empty { opacity: 0.5; font-size: 13px; padding: 24px 0; text-align: center; }
+  .card-edit-form { display: none; flex-direction: column; gap: 6px; padding: 8px 0 4px; }
+  .card-editing .card-edit-form { display: flex; }
+  .card-editing .prompt-content { display: none; }
+  .card-edit-form textarea {
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 4px;
+    box-sizing: border-box;
+    color: var(--vscode-input-foreground);
+    font: inherit;
+    font-size: 12px;
+    min-height: 80px;
+    padding: 6px;
+    resize: vertical;
+    width: 100%;
+  }
+  .card-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .card-edit-save, .card-edit-cancel {
+    background: transparent;
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 3px;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+  .card-edit-save { border-color: var(--vscode-button-background); color: var(--vscode-button-background); }
+  .card-edit-cancel:hover, .card-edit-save:hover { opacity: 0.8; }
 </style>
 </head>
 <body>
@@ -1019,11 +1046,40 @@ function renderPanelHtml(cspSource: string): string {
     function renderPromptCard(row) {
       const card = el('div', 'prompt-card');
       card.dataset.promptId = row.id;
+      card.dataset.content = row.content;
 
       const content = el('div', 'prompt-content', row.content);
       content.title = 'Click to copy & insert at cursor';
-      content.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
+      content.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default', content: card.dataset.content }));
       card.appendChild(content);
+
+      // Inline edit form
+      const editForm = el('div', 'card-edit-form');
+      const editArea = document.createElement('textarea');
+      editArea.value = row.content;
+      editForm.appendChild(editArea);
+      const editActions = el('div', 'card-edit-actions');
+      const saveBtn = el('button', 'card-edit-save', 'Save');
+      saveBtn.title = 'Apply edits to this card';
+      saveBtn.addEventListener('click', () => {
+        const newContent = editArea.value.trim();
+        if (newContent) {
+          card.dataset.content = newContent;
+          content.textContent = newContent;
+        }
+        card.classList.remove('card-editing');
+        copiedPromptIds.delete(row.id);
+        addedPromptIds.delete(row.id);
+        copyBtn.disabled = false; copyBtn.textContent = 'Copy'; copyBtn.className = 'action-btn'; copyBtn.title = 'Copy prompt to clipboard';
+        insertBtn.disabled = false; insertBtn.textContent = 'Add To Template'; insertBtn.className = 'action-btn'; insertBtn.title = 'Save this prompt to My Templates';
+      });
+      const cancelBtn = el('button', 'card-edit-cancel', 'Cancel');
+      cancelBtn.title = 'Discard edits';
+      cancelBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.remove('card-editing'); });
+      editActions.appendChild(saveBtn);
+      editActions.appendChild(cancelBtn);
+      editForm.appendChild(editActions);
+      card.appendChild(editForm);
 
       const footer = el('div', 'prompt-footer');
       footer.appendChild(el('div', 'prompt-meta', row.meta || ''));
@@ -1037,7 +1093,7 @@ function renderPanelHtml(cspSource: string): string {
       if (!isCopied) {
         copyBtn.addEventListener('click', () => {
           copiedPromptIds.add(row.id);
-          vscode.postMessage({ type: 'use', id: row.id, action: 'copy' });
+          vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
           copyBtn.disabled = true;
           copyBtn.textContent = '✓';
           copyBtn.className = 'action-btn done';
@@ -1052,7 +1108,7 @@ function renderPanelHtml(cspSource: string): string {
       if (!isAdded) {
         insertBtn.addEventListener('click', () => {
           addedPromptIds.add(row.id);
-          vscode.postMessage({ type: 'addTemplate', id: row.id });
+          vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
           insertBtn.disabled = true;
           insertBtn.textContent = '✓';
           insertBtn.className = 'action-btn done';
@@ -1060,8 +1116,13 @@ function renderPanelHtml(cspSource: string): string {
         });
       }
 
+      const editBtn = el('button', 'action-btn', '✏');
+      editBtn.title = 'Edit prompt text';
+      editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
+
       actions.appendChild(copyBtn);
       actions.appendChild(insertBtn);
+      actions.appendChild(editBtn);
       footer.appendChild(actions);
       card.appendChild(footer);
       return card;
@@ -1239,18 +1300,20 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
 
   panel.webview.onDidReceiveMessage(async (message) => {
     if (message?.type === 'use') {
-      const row = findPromptById(storage, message.id);
-      if (row) {
-        await usePromptContent(row.name, row.content, message.action);
+      const base = findPromptById(storage, message.id);
+      if (base) {
+        const content = (message.content as string | undefined) ?? base.content;
+        await usePromptContent(base.name, content, message.action);
       }
       return;
     }
     if (message?.type === 'addTemplate') {
-      const row = findPromptById(storage, message.id);
-      if (row) {
-        const isDuplicate = storage.getTemplates().some((t) => t.name === row.name && t.content === row.content);
+      const base = findPromptById(storage, message.id);
+      if (base) {
+        const content = (message.content as string | undefined) ?? base.content;
+        const isDuplicate = storage.getTemplates().some((t) => t.name === base.name && t.content === content);
         if (isDuplicate) {
-          vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" is already in My Templates`, 3000);
+          vscode.window.setStatusBarMessage(`PromptDock: "${base.name}" is already in My Templates`, 3000);
           return;
         }
         let folderId: string | undefined;
@@ -1262,8 +1325,8 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
           }
           folderId = folder.id;
         }
-        await storage.createTemplate(row.name, row.content, folderId);
-        vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" added to My Templates`, 3000);
+        await storage.createTemplate(base.name, content, folderId);
+        vscode.window.setStatusBarMessage(`PromptDock: "${base.name}" added to My Templates`, 3000);
       }
       return;
     }
