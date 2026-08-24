@@ -1230,26 +1230,28 @@ function renderPanelHtml(cspSource: string): string {
       });
       searchBar.appendChild(input);
 
-      const expandBtn = el('button', 'fold-btn', '⊞');
-      expandBtn.title = 'Expand all folders';
-      expandBtn.addEventListener('click', () => {
-        if (sectionKey === 'templates') {
-          for (const folder of state.templates.folders) expandedSections.add('folder:' + folder.id);
-          if (state.templates.unfiled.length > 0) expandedSections.add('unfiled');
+      const allSectionKeys = sectionKey === 'templates'
+        ? [
+            ...state.templates.folders.map((f) => 'folder:' + f.id),
+            ...(state.templates.unfiled.length > 0 ? ['unfiled'] : []),
+          ]
+        : (state.sources.find((s) => s.source === sectionKey)?.projects ?? []).map((p) => 'project:' + p.name);
+      const allExpanded = allSectionKeys.length > 0 && allSectionKeys.every((k) => expandedSections.has(k));
+
+      const foldBtn = el('button', 'fold-btn', allExpanded ? '⊟' : '⊞');
+      foldBtn.title = allExpanded ? 'Collapse all folders' : 'Expand all folders';
+      foldBtn.addEventListener('click', () => {
+        if (allExpanded) {
+          expandedSections.clear();
         } else {
-          const source = state.sources.find((s) => s.source === sectionKey);
-          if (source) for (const project of source.projects) expandedSections.add('project:' + project.name);
+          for (const key of allSectionKeys) expandedSections.add(key);
         }
         render();
       });
-      const collapseBtn = el('button', 'fold-btn', '⊟');
-      collapseBtn.title = 'Collapse all folders';
-      collapseBtn.addEventListener('click', () => { expandedSections.clear(); render(); });
 
       const searchRow = el('div', 'search-row');
       searchRow.appendChild(searchBar);
-      searchRow.appendChild(expandBtn);
-      searchRow.appendChild(collapseBtn);
+      searchRow.appendChild(foldBtn);
 
       if (sectionKey === 'templates') {
         const total = state.templates.unfiled.length + state.templates.folders.reduce((n, f) => n + f.templates.length + f.presets.length, 0);
