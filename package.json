@@ -2,7 +2,7 @@
   "name": "promptdock",
   "displayName": "PromptDock",
   "description": "Manage, reuse, and track your favorite AI prompt templates right from the VS Code sidebar.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "publisher": "promptdock",
   "license": "MIT",
   "repository": {
