@@ -1044,7 +1044,7 @@ function renderPanelHtml(cspSource: string): string {
       }
 
       const isAdded = addedPromptIds.has(row.id);
-      const insertBtn = el('button', isAdded ? 'action-btn done' : 'action-btn primary', isAdded ? '✓' : 'Add To Template');
+      const insertBtn = el('button', isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : 'Add To Template');
       insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
       insertBtn.disabled = isAdded;
       if (!isAdded) {
