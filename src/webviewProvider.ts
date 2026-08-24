@@ -1064,6 +1064,12 @@ function renderPanelHtml(cspSource: string): string {
       card.dataset.promptId = row.id;
       card.dataset.content = row.content;
 
+      card.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).closest('button')) return;
+        document.querySelectorAll('.prompt-card.highlight').forEach((c) => c.classList.remove('highlight'));
+        card.classList.add('highlight');
+      });
+
       const content = el('div', 'prompt-content', row.content);
       content.title = 'Click to copy & insert at cursor';
       content.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default', content: card.dataset.content }));
