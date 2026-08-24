@@ -535,7 +535,7 @@ function renderHtml(cspSource: string): string {
       input.addEventListener('input', () => { queries[sectionKey] = input.value; rerenderCard(sectionKey); });
       search.appendChild(input);
       bar.appendChild(search);
-      const newWindowBtn = el('button', 'new-window-btn', '+ New Window');
+      const newWindowBtn = el('button', 'new-window-btn', '+ New Session');
       newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
       bar.appendChild(newWindowBtn);
       return bar;
