@@ -966,7 +966,15 @@ function renderPanelHtml(cspSource: string): string {
     font-weight: 500;
   }
   .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
-  .action-btn:disabled, .action-btn.added { opacity: 0.45; cursor: not-allowed; background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background)); }
+  .action-btn.done {
+    opacity: 0.75;
+    cursor: not-allowed;
+    color: var(--vscode-testing-iconPassed, #4ec9b0);
+    border-color: var(--vscode-testing-iconPassed, #4ec9b0);
+    background: transparent;
+  }
+  .action-btn.done:hover { background: transparent; }
+  .action-btn:disabled { cursor: not-allowed; opacity: 0.45; }
   .action-btn.primary {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
@@ -1020,12 +1028,23 @@ function renderPanelHtml(cspSource: string): string {
 
       const actions = el('div', 'prompt-actions');
 
-      const copyBtn = el('button', 'action-btn', 'Copy');
-      copyBtn.title = 'Copy prompt to clipboard';
-      copyBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }));
+      const isCopied = copiedPromptIds.has(row.id);
+      const copyBtn = el('button', isCopied ? 'action-btn done' : 'action-btn', isCopied ? '✓' : 'Copy');
+      copyBtn.title = isCopied ? 'Copied' : 'Copy prompt to clipboard';
+      copyBtn.disabled = isCopied;
+      if (!isCopied) {
+        copyBtn.addEventListener('click', () => {
+          copiedPromptIds.add(row.id);
+          vscode.postMessage({ type: 'use', id: row.id, action: 'copy' });
+          copyBtn.disabled = true;
+          copyBtn.textContent = '✓';
+          copyBtn.className = 'action-btn done';
+          copyBtn.title = 'Copied';
+        });
+      }
 
       const isAdded = addedPromptIds.has(row.id);
-      const insertBtn = el('button', isAdded ? 'action-btn added' : 'action-btn primary', isAdded ? '✓ Added' : 'Add To Template');
+      const insertBtn = el('button', isAdded ? 'action-btn done' : 'action-btn primary', isAdded ? '✓' : 'Add To Template');
       insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
       insertBtn.disabled = isAdded;
       if (!isAdded) {
@@ -1033,8 +1052,8 @@ function renderPanelHtml(cspSource: string): string {
           addedPromptIds.add(row.id);
           vscode.postMessage({ type: 'addTemplate', id: row.id });
           insertBtn.disabled = true;
-          insertBtn.textContent = '✓ Added';
-          insertBtn.className = 'action-btn added';
+          insertBtn.textContent = '✓';
+          insertBtn.className = 'action-btn done';
           insertBtn.title = 'Already added to My Templates';
         });
       }
@@ -1085,6 +1104,7 @@ function renderPanelHtml(cspSource: string): string {
     }
 
     const addedPromptIds = new Set();
+    const copiedPromptIds = new Set();
 
     function render() {
       const app = document.getElementById('app');
