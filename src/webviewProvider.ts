@@ -808,7 +808,7 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'openDetail') {
         const rawId = (message.id as string).slice('imported:'.length);
         const source = rawId.split(':')[0] as PromptSource;
-        openSectionPanel(this.extensionUri, this.storage, source);
+        openSectionPanel(this.extensionUri, this.storage, source, message.id as string);
         return;
       }
       if (message?.type === 'createFolder') {
@@ -936,6 +936,7 @@ function renderPanelHtml(cspSource: string): string {
     transition: border-color 0.1s ease;
   }
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
+  .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); transition: box-shadow 0.15s ease; }
   .prompt-content {
     font-size: 13px;
     line-height: 1.55;
@@ -994,8 +995,20 @@ function renderPanelHtml(cspSource: string): string {
       return !q || text.toLowerCase().includes(q.toLowerCase());
     }
 
+    function scrollToPrompt(promptId) {
+      document.querySelectorAll('.folder-section.collapsed').forEach((s) => s.classList.remove('collapsed'));
+      requestAnimationFrame(() => {
+        const card = document.querySelector('[data-prompt-id="' + promptId + '"]');
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('highlight');
+        setTimeout(() => card.classList.remove('highlight'), 2000);
+      });
+    }
+
     function renderPromptCard(row) {
       const card = el('div', 'prompt-card');
+      card.dataset.promptId = row.id;
 
       const content = el('div', 'prompt-content', row.content);
       content.title = 'Click to copy & insert at cursor';
@@ -1157,7 +1170,9 @@ function renderPanelHtml(cspSource: string): string {
         state = msg.state;
         sectionKey = msg.section;
         render();
+        if (msg.scrollTo) scrollToPrompt(msg.scrollTo);
       }
+      if (msg.type === 'scrollTo') scrollToPrompt(msg.promptId);
     });
 
     vscode.postMessage({ type: 'ready' });
@@ -1166,20 +1181,31 @@ function renderPanelHtml(cspSource: string): string {
 </html>`;
 }
 
-/** Opens a single section (My Templates, or one source) as its own detached webview panel/tab. */
-function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string): void {
+const openSectionPanels = new Map<string, vscode.WebviewPanel>();
+
+/** Opens a single section (My Templates, or one source) as its own detached webview panel/tab. Reuses an existing panel for the same section. */
+function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string, scrollToId?: string): void {
+  const existing = openSectionPanels.get(section);
+  if (existing) {
+    existing.reveal(vscode.ViewColumn.Beside);
+    if (scrollToId) existing.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
+    return;
+  }
+
   const panel = vscode.window.createWebviewPanel(
     'promptdock.section',
     `PromptDock: ${section === 'templates' ? 'My Templates' : SOURCE_LABELS[section as PromptSource]}`,
     vscode.ViewColumn.Beside,
     { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
+  openSectionPanels.set(section, panel);
   panel.webview.html = renderPanelHtml(panel.webview.cspSource);
 
   const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section });
   post();
+  if (scrollToId) panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
   const changeListener = storage.onDidChange(post);
-  panel.onDidDispose(() => changeListener.dispose());
+  panel.onDidDispose(() => { changeListener.dispose(); openSectionPanels.delete(section); });
 
   panel.webview.onDidReceiveMessage(async (message) => {
     if (message?.type === 'use') {
