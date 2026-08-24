@@ -1309,13 +1309,14 @@ let sharedSectionCurrentSection = 'templates';
 
 /** Opens the shared detached webview panel. Reuses the existing panel and switches its section if already open. */
 function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string, scrollToId?: string): void {
+  const sectionChanged = section !== sharedSectionCurrentSection;
   sharedSectionCurrentSection = section;
   const panelTitle = `PromptDock: ${section === 'templates' ? 'My Templates' : SOURCE_LABELS[section as PromptSource]}`;
 
   if (sharedSectionPanel) {
     sharedSectionPanel.title = panelTitle;
     sharedSectionPanel.reveal(undefined, true);
-    sharedSectionPanel.webview.postMessage({ type: 'state', state: buildState(storage), section });
+    if (sectionChanged) sharedSectionPanel.webview.postMessage({ type: 'state', state: buildState(storage), section });
     if (scrollToId) sharedSectionPanel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
     return;
   }
