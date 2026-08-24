@@ -428,6 +428,7 @@ function renderHtml(cspSource: string): string {
       header.appendChild(el('span', 'chevron', '▾'));
       header.appendChild(el('span', 'label', label));
       header.appendChild(el('span', 'count', String(count)));
+      header.title = 'Click to expand or collapse';
       header.addEventListener('click', () => {
         g.classList.toggle('collapsed');
         if (g.classList.contains('collapsed')) collapsedGroups.add(groupKey); else collapsedGroups.delete(groupKey);
@@ -459,6 +460,7 @@ function renderHtml(cspSource: string): string {
       left.appendChild(el('span', 'count', String(count)));
       header.appendChild(left);
       header.appendChild(el('span', 'toggle', '▾'));
+      header.title = 'Click to expand or collapse';
       header.addEventListener('click', () => {
         const card = header.closest('.card');
         const wasCollapsed = card.classList.contains('collapsed');
@@ -545,6 +547,7 @@ function renderHtml(cspSource: string): string {
       const sourceData = state.sources.find((s) => s.source === sectionKey);
       const syncLabel = sourceData ? 'Sync from ' + sourceData.icon + ' ' + sourceData.label : 'Sync Prompts';
       const syncBtn = el('button', 'sync-btn');
+      syncBtn.title = sourceData ? 'Re-fetch and refresh prompts from ' + sourceData.label : 'Refresh the prompt library';
       syncBtn.appendChild(el('span', 'sync-icon', '↻'));
       syncBtn.appendChild(el('span', '', syncLabel));
       syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
@@ -563,6 +566,7 @@ function renderHtml(cspSource: string): string {
       search.appendChild(input);
       bar.appendChild(search);
       const newWindowBtn = el('button', 'new-window-btn', '+ New Session');
+      newWindowBtn.title = 'Open this section in a detached editor panel';
       newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
       bar.appendChild(newWindowBtn);
       container.appendChild(bar);
