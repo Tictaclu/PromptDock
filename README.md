@@ -1,3 +1,5 @@
+English | [简体中文](README.zh-CN.md)
+
 # PromptDock
 
 Manage, reuse, and reach for your favorite AI prompts without leaving VS Code. PromptDock lives in its own Activity Bar view and keeps three things in one place: prompt templates you write yourself, a built-in library of common presets, and prompt history it pulls automatically from Claude Code, GitHub Copilot Chat, and Codex.
