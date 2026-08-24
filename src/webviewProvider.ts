@@ -1155,7 +1155,7 @@ function renderPanelHtml(cspSource: string): string {
       return card;
     }
 
-    function renderFolderSection(icon, title, rows, key, folderId?) {
+    function renderFolderSection(icon, title, rows, key, folderId) {
       const filtered = rows.filter((r) => matchesRow(r, query));
       if (query && filtered.length === 0) return null;
 
