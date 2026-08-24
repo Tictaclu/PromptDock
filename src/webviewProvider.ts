@@ -827,14 +827,10 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
   }
 }
 
-function safeJson(value: unknown): string {
-  return JSON.stringify(value ?? null).replace(/<\/script>/gi, '<\\/script>');
-}
-
-function renderPanelHtml(cspSource: string, initialState?: WebviewState, initialSection?: string): string {
+function renderPanelHtml(cspSource: string): string {
   const scriptNonce = nonce();
-  const stateJson = safeJson(initialState);
-  const sectionJson = safeJson(initialSection);
+  const stateJson = 'null';
+  const sectionJson = 'null';
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1219,12 +1215,11 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
     const addedPromptIds = new Set();
     const expandedSections = new Set();
 
-    render();
-
     function render() {
       const app = document.getElementById('app');
+      if (!app) return;
       app.innerHTML = '';
-      if (!state) { app.appendChild(el('div', 'empty', 'Loading…')); return; }
+      if (!state || !sectionKey) { app.appendChild(el('div', 'empty', 'Loading…')); return; }
 
       const searchBar = el('div', 'search-bar');
       searchBar.appendChild(el('span', '', '🔍'));
@@ -1274,7 +1269,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
         }
       } else {
         const source = state.sources.find((s) => s.source === sectionKey);
-        if (!source) return;
+        if (!source) { app.appendChild(el('div', 'empty', 'Loading…')); return; }
 
         const header = el('div', 'section-header');
         header.appendChild(el('span', 'section-title', source.icon + ' ' + source.label));
@@ -1337,6 +1332,8 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       }
       if (msg.type === 'scrollTo') scrollToPrompt(msg.promptId);
     });
+
+    vscode.postMessage({ type: 'ready' });
   </script>
 </body>
 </html>`;
@@ -1366,16 +1363,23 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
   sharedSectionPanel = panel;
-  panel.webview.html = renderPanelHtml(panel.webview.cspSource, buildState(storage), sharedSectionCurrentSection);
+  panel.webview.html = renderPanelHtml(panel.webview.cspSource);
 
   const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section: sharedSectionCurrentSection });
+  let initialStateSent = false;
+  const sendInitial = () => { if (!initialStateSent) { initialStateSent = true; post(); } };
+
   const changeListener = storage.onDidChange(post);
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
   panel.onDidChangeViewState(({ webviewPanel }) => { if (webviewPanel.visible) post(); });
 
-  if (scrollToId) setTimeout(() => panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId }), 150);
+  // Fallback: send state after 300ms in case 'ready' message is missed
+  setTimeout(sendInitial, 300);
+
+  if (scrollToId) setTimeout(() => panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId }), 400);
 
   panel.webview.onDidReceiveMessage(async (message) => {
+    if (message?.type === 'ready') { sendInitial(); return; }
     if (message?.type === 'use') {
       const base = findPromptById(storage, message.id);
       if (base) {
