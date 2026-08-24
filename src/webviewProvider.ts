@@ -419,13 +419,14 @@ function renderHtml(cspSource: string): string {
   <div id="app"></div>
   <script nonce="${scriptNonce}">
     const vscode = acquireVsCodeApi();
-    const collapsedCards = new Set(JSON.parse((vscode.getState() && vscode.getState().collapsedCards) || '[]'));
+    // Store which cards are EXPANDED — empty set means all collapsed on first open
+    const expandedCards = new Set(JSON.parse((vscode.getState() && vscode.getState().expandedCards) || '[]'));
     const collapsedGroups = new Set(JSON.parse((vscode.getState() && vscode.getState().collapsedGroups) || '[]'));
     let state = null;
 
     function saveUiState() {
       vscode.setState({
-        collapsedCards: JSON.stringify([...collapsedCards]),
+        expandedCards: JSON.stringify([...expandedCards]),
         collapsedGroups: JSON.stringify([...collapsedGroups]),
       });
     }
@@ -552,7 +553,7 @@ function renderHtml(cspSource: string): string {
         const card = header.closest('.card');
         const wasCollapsed = card.classList.contains('collapsed');
         if (wasCollapsed) {
-          collapsedCards.delete(sectionKey);
+          expandedCards.add(sectionKey);
           const prefixes = groupPrefixesFor(sectionKey);
           for (const key of [...collapsedGroups]) {
             if (prefixes.some((p) => key.startsWith(p))) collapsedGroups.delete(key);
@@ -560,7 +561,7 @@ function renderHtml(cspSource: string): string {
           saveUiState();
           rerenderCard(sectionKey);
         } else {
-          collapsedCards.add(sectionKey);
+          expandedCards.delete(sectionKey);
           card.classList.add('collapsed');
           saveUiState();
         }
@@ -569,7 +570,7 @@ function renderHtml(cspSource: string): string {
     }
 
     function renderTemplatesCard(query) {
-      const card = el('div', 'card' + (collapsedCards.has('templates') ? ' collapsed' : ''));
+      const card = el('div', 'card' + (expandedCards.has('templates') ? '' : ' collapsed'));
       const header = renderCardHeader('templates', '⭐ My Templates', state.templates.unfiled.length + state.templates.folders.reduce((n, f) => n + f.templates.length + f.presets.length, 0));
       card.appendChild(header);
 
@@ -597,7 +598,7 @@ function renderHtml(cspSource: string): string {
     }
 
     function renderSourceCard(source, query) {
-      const card = el('div', 'card' + (collapsedCards.has(source.source) ? ' collapsed' : ''));
+      const card = el('div', 'card' + (expandedCards.has(source.source) ? '' : ' collapsed'));
       const header = renderCardHeader(source.source, source.icon + ' ' + source.label, source.count);
       card.appendChild(header);
 
@@ -992,7 +993,7 @@ function renderPanelHtml(cspSource: string): string {
     }
 
     function renderFolderSection(icon, title, rows, key) {
-      const section = el('div', 'folder-section');
+      const section = el('div', 'folder-section collapsed');
 
       const titleEl = el('div', 'folder-title');
       titleEl.title = 'Click to expand or collapse';
@@ -1070,7 +1071,7 @@ function renderPanelHtml(cspSource: string): string {
 
         let any = false;
         for (const project of source.projects) {
-          const projectSection = el('div', 'folder-section');
+          const projectSection = el('div', 'folder-section collapsed');
 
           const projectTitle = el('div', 'folder-title');
           projectTitle.title = 'Click to expand or collapse';
