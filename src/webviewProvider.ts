@@ -542,9 +542,11 @@ function renderHtml(cspSource: string): string {
     function renderToolbar(sectionKey, currentQuery) {
       const container = el('div', 'toolbar-container');
 
+      const sourceData = state.sources.find((s) => s.source === sectionKey);
+      const syncLabel = sourceData ? 'Sync from ' + sourceData.icon + ' ' + sourceData.label : 'Sync Prompts';
       const syncBtn = el('button', 'sync-btn');
       syncBtn.appendChild(el('span', 'sync-icon', '↻'));
-      syncBtn.appendChild(el('span', '', 'Sync Prompts'));
+      syncBtn.appendChild(el('span', '', syncLabel));
       syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
       container.appendChild(syncBtn);
 
