@@ -285,6 +285,8 @@ function renderHtml(cspSource: string): string {
   .card-header .name { font-weight: 600; }
   .card-header .count { opacity: 0.6; font-size: 12px; }
   .card-header .toggle { font-size: 16px; line-height: 1; margin-left: 8px; transition: transform 0.15s ease; }
+  .card-sync-btn { background: transparent; border: 1px solid var(--vscode-widget-border, transparent); border-radius: 4px; color: var(--vscode-foreground); cursor: pointer; font-family: inherit; font-size: 11px; opacity: 0.7; padding: 2px 8px; white-space: nowrap; }
+  .card-sync-btn:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
   .card.collapsed .toggle { transform: rotate(-90deg); }
   .card-body { padding: 8px; }
   .card.collapsed .card-body { display: none; }
@@ -562,6 +564,12 @@ function renderHtml(cspSource: string): string {
       left.appendChild(el('span', 'name', name));
       left.appendChild(el('span', 'count', String(count)));
       header.appendChild(left);
+      if (sectionKey !== 'templates') {
+        const syncBtn = el('button', 'card-sync-btn', 'Sync Prompts');
+        syncBtn.title = 'Re-fetch prompts from this source';
+        syncBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'sync', section: sectionKey }); });
+        header.appendChild(syncBtn);
+      }
       header.appendChild(el('span', 'toggle', '▾'));
       header.title = 'Click to expand or collapse';
       header.addEventListener('click', () => {
@@ -651,17 +659,6 @@ function renderHtml(cspSource: string): string {
 
     function renderToolbar(sectionKey, currentQuery) {
       const container = el('div', 'toolbar-container');
-
-      if (sectionKey !== 'templates') {
-        const sourceData = state.sources.find((s) => s.source === sectionKey);
-        const syncLabel = sourceData ? 'Sync from ' + sourceData.icon + ' ' + sourceData.label : 'Sync Prompts';
-        const syncBtn = el('button', 'sync-btn');
-        syncBtn.title = sourceData ? 'Re-fetch and refresh prompts from ' + sourceData.label : 'Refresh the prompt library';
-        syncBtn.appendChild(el('span', 'sync-icon', '↻'));
-        syncBtn.appendChild(el('span', '', syncLabel));
-        syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
-        container.appendChild(syncBtn);
-      }
 
       const bar = el('div', 'toolbar');
       const search = el('div', 'search');
