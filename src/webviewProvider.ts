@@ -284,7 +284,7 @@ function renderHtml(cspSource: string): string {
   .card-header .left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .card-header .name { font-weight: 600; }
   .card-header .count { opacity: 0.6; font-size: 12px; }
-  .card-header .toggle { opacity: 0.7; margin-left: 8px; transition: transform 0.1s ease; }
+  .card-header .toggle { font-size: 16px; line-height: 1; margin-left: 8px; transition: transform 0.15s ease; }
   .card.collapsed .toggle { transform: rotate(-90deg); }
   .card-body { padding: 8px; }
   .card.collapsed .card-body { display: none; }
@@ -324,13 +324,14 @@ function renderHtml(cspSource: string): string {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 6px;
+    padding: 6px 8px;
     border-radius: 4px;
     cursor: pointer;
     user-select: none;
+    min-height: 30px;
   }
   .group-header:hover { background: var(--vscode-list-hoverBackground); }
-  .group-header .chevron { opacity: 0.7; width: 12px; transition: transform 0.1s ease; }
+  .group-header .chevron { font-size: 16px; line-height: 1; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
   .group.collapsed > .group-children { display: none; }
   .group.collapsed .chevron { transform: rotate(-90deg); }
   .group-header .label { font-size: 13px; }
