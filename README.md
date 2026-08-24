@@ -2,33 +2,39 @@ English | [简体中文](README.zh-CN.md)
 
 # PromptDock
 
-Manage, reuse, and reach for your favorite AI prompts without leaving VS Code. PromptDock lives in its own Activity Bar view and keeps three things in one place: prompt templates you write yourself, a built-in library of common presets, and prompt history it pulls automatically from Claude Code, GitHub Copilot Chat, and Codex.
+**AI Prompt Management for VS Code**
+
+PromptDock is a VS Code extension that gives you a dedicated home for every AI prompt you work with — templates you craft, built-in presets for common engineering tasks, and the full history of prompts you've already sent through Claude Code, GitHub Copilot Chat, and Codex. Stop rewriting the same prompts, stop losing good ones in chat history. Keep them organized, searchable, and one click away.
+
+## Why PromptDock?
+
+AI coding tools are only as good as the prompts you give them. Most developers end up repeating the same prompts from memory, hunting through chat histories, or keeping prompts in random text files. PromptDock puts your entire prompt library in the sidebar — structured, versioned in your own templates, and surfaced from every AI tool you already use.
 
 ## Features
 
 ### My Templates
 
-Write and reuse your own prompt templates, organized into folders. PromptDock seeds a starter set of folders on first run — Requirements, Design, Development, Testing, Deployment, Maintenance, and Agents — and you can add, rename, or delete your own at any time. Deleting a folder never deletes what's inside it; the templates just fall back to unfiled.
+Write and organize your own prompt templates in a folder structure that matches how you work. PromptDock seeds a starter set on first run — Requirements, Design, Development, Testing, Deployment, Maintenance, and Agents — and you can add, rename, or delete folders freely. Deleting a folder never deletes the templates inside; they fall back to unfiled.
 
-### Built-in presets
+### Built-in Presets
 
-Twelve ready-to-use prompts covering debugging, refactoring, testing, documentation, code review, and performance ship with the extension and show up automatically inside the folder they best fit (e.g. testing prompts appear under **Testing**, debugging and refactoring prompts under **Development**). Import a single preset or all of them into My Templates with one click — they land pre-filed in the matching folder.
+Twelve ready-to-use prompts ship with the extension, covering debugging, refactoring, testing, documentation, code review, and performance. They appear pre-sorted into the right folders and can be imported into My Templates — individually or all at once — with a single click.
 
-### Imported history
+### Prompt History from Your AI Tools
 
-PromptDock scans your local Claude Code, Copilot Chat, and Codex session files and surfaces every prompt you've sent through them, grouped by tool, then by project, then by conversation. It runs automatically on startup and re-scans only files that changed since the last sync, so it stays fast even with a large history. You can also trigger a manual sync at any time.
+PromptDock automatically scans your local Claude Code, Copilot Chat, and Codex session files and surfaces every prompt you've sent, grouped by tool, project, and conversation. It runs on startup and re-scans only changed files, so it stays fast even with a large history. Trigger a manual sync anytime.
 
-### Search everywhere
+### Search Across Everything
 
-Every section of the sidebar has its own instant search box that filters by name and content as you type. For a search across everything at once — templates, presets, and imported history together — run **PromptDock: Search Prompts...** from the Command Palette; picking a result opens its full content in a separate panel with one-click Copy, Insert, and (for presets/imported prompts) Save to My Templates.
+Each section has its own instant search box. For a single search across all templates, presets, and imported history at once, run **PromptDock: Search Prompts...** from the Command Palette. Selecting a result opens its full content in a panel with one-click Copy, Insert, and Save to My Templates.
 
-### Using a prompt
+### Use a Prompt Instantly
 
-Click a prompt's name to copy it to the clipboard and insert it at your cursor in one step (configurable — see below), or use the dedicated copy button for clipboard-only. Any `{selection}` placeholder in a prompt's content is automatically replaced with your active editor's current text selection before it's copied or inserted.
+Click a prompt name to copy it to the clipboard and insert it at your cursor in one step (configurable). Any `{selection}` placeholder is automatically replaced with your active editor's text selection before copying or inserting.
 
-### Pop-out windows
+### Pop-out Panel
 
-Use the **+ New Window** button on any section (My Templates or a source like Claude Code) to open just that section in its own detached panel — handy for keeping your prompt library visible alongside your code.
+Open any section — My Templates or a specific tool source — in its own detached panel with **+ New Window**, so your prompt library stays visible alongside your code.
 
 ## Configuration
 
@@ -38,13 +44,13 @@ Use the **+ New Window** button on any section (My Templates or a source like Cl
 
 ## Commands
 
-All commands are available from the Command Palette under the **PromptDock** category, including:
+All commands are available from the Command Palette under **PromptDock**:
 
-- **Search Prompts...** — search every prompt at once and open a result in its own panel
+- **Search Prompts...** — search every prompt at once
 - **Sync Prompts from Claude Code / Copilot Chat / Codex** — manually refresh imported history
-- **New Prompt Template...** / **New Folder...** — add to My Templates from the sidebar
-- **Import to My Templates** / **Import All Presets** — copy built-in presets into your own library
+- **New Prompt Template...** / **New Folder...** — add to My Templates
+- **Import to My Templates** / **Import All Presets** — copy built-in presets into your library
 
 ## Privacy
 
-Everything PromptDock manages — your templates, folders, and imported history — is stored locally in VS Code's own extension storage. Nothing is sent anywhere; importing history only reads session files already on your machine.
+Everything PromptDock manages — templates, folders, imported history — is stored locally in VS Code's extension storage. Nothing is sent to any external service. History import only reads session files already on your machine.
