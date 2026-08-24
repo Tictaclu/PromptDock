@@ -257,6 +257,8 @@ function renderHtml(cspSource: string): string {
     font-size: var(--vscode-font-size);
     color: var(--vscode-foreground);
     background: var(--vscode-sideBar-background);
+    overflow-x: hidden;
+    scrollbar-gutter: stable;
   }
   .title {
     font-weight: 600;
@@ -459,7 +461,6 @@ function renderHtml(cspSource: string): string {
       // Normal view
       const normal = el('div', 'row-normal');
       const name = el('div', 'row-name', row.name);
-      name.title = row.content;
       name.title = 'Click to open in New Session';
       name.addEventListener('click', () => vscode.postMessage({ type: 'openDetail', id: row.id }));
       normal.appendChild(name);
