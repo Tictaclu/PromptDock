@@ -1341,12 +1341,19 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
   panel.webview.html = renderPanelHtml(panel.webview.cspSource);
 
   const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section: sharedSectionCurrentSection });
-  post();
-  if (scrollToId) panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
+  let pendingScrollId = scrollToId;
   const changeListener = storage.onDidChange(post);
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
 
   panel.webview.onDidReceiveMessage(async (message) => {
+    if (message?.type === 'ready') {
+      post();
+      if (pendingScrollId) {
+        panel.webview.postMessage({ type: 'scrollTo', promptId: pendingScrollId });
+        pendingScrollId = undefined;
+      }
+      return;
+    }
     if (message?.type === 'use') {
       const base = findPromptById(storage, message.id);
       if (base) {
