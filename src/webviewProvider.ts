@@ -566,7 +566,7 @@ function renderHtml(cspSource: string): string {
       left.appendChild(el('span', 'count', String(count)));
       header.appendChild(left);
       if (sectionKey !== 'templates') {
-        const syncBtn = el('button', 'card-sync-btn', 'Sync Prompts');
+        const syncBtn = el('button', 'card-sync-btn', '↻ Sync Prompts');
         syncBtn.title = 'Re-fetch prompts from this source';
         syncBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'sync', section: sectionKey }); });
         header.appendChild(syncBtn);
