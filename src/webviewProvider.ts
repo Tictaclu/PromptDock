@@ -741,6 +741,19 @@ function renderPanelHtml(cspSource: string): string {
   }
   .folder-title:hover { background: var(--vscode-list-hoverBackground); border-radius: 4px; }
   .folder-title .chevron { font-size: 14px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
+  .folder-title .folder-sync-btn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 2px 6px;
+    color: inherit;
+    opacity: 0.55;
+  }
+  .folder-title .folder-sync-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); border-color: var(--vscode-widget-border, transparent); }
   .folder-section.collapsed .chevron { transform: rotate(-90deg); }
   .folder-section.collapsed .folder-body { display: none; }
   .session-group { margin-bottom: 16px; }
@@ -948,6 +961,13 @@ function renderPanelHtml(cspSource: string): string {
           projectTitle.appendChild(el('span', 'chevron', '▾'));
           projectTitle.appendChild(el('span', '', '📁 ' + project.name));
           projectTitle.appendChild(el('span', 'badge', String(project.count)));
+          const folderSyncBtn = el('button', 'folder-sync-btn', '↻');
+          folderSyncBtn.title = 'Sync prompts from ' + (source ? source.label : 'this source');
+          folderSyncBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            vscode.postMessage({ type: 'sync', section: sectionKey });
+          });
+          projectTitle.appendChild(folderSyncBtn);
           projectTitle.addEventListener('click', () => projectSection.classList.toggle('collapsed'));
           projectSection.appendChild(projectTitle);
 
@@ -1017,6 +1037,11 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
         await storage.createTemplate(row.name, row.content);
         vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" added to My Templates`, 3000);
       }
+      return;
+    }
+    if (message?.type === 'sync') {
+      post();
+      vscode.window.setStatusBarMessage('PromptDock: Prompts synced', 2000);
     }
   });
 }
