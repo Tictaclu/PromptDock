@@ -135,7 +135,18 @@
       }
     ],
     "menus": {
-      "view/title": [],
+      "view/title": [
+        {
+          "command": "promptdock.syncExternalHistory",
+          "when": "view == promptdock.view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "promptdock.refresh",
+          "when": "view == promptdock.view",
+          "group": "navigation@2"
+        }
+      ],
       "view/item/context": [
         {
           "command": "promptdock.copyPrompt",
