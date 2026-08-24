@@ -1208,6 +1208,7 @@ function renderPanelHtml(cspSource: string): string {
 
     const addedPromptIds = new Set();
     const expandedSections = new Set();
+    let searchDebounceTimer;
 
     function render() {
       const app = document.getElementById('app');
@@ -1220,7 +1221,13 @@ function renderPanelHtml(cspSource: string): string {
       const input = document.createElement('input');
       input.placeholder = 'Search prompts…';
       input.value = query;
-      input.addEventListener('input', () => { query = input.value; render(); });
+      // Debounced: this section can hold many heavy prompt cards (edit form, several buttons each),
+      // so rebuilding the whole section on literally every keystroke is real, avoidable CPU cost.
+      input.addEventListener('input', () => {
+        query = input.value;
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(render, 150);
+      });
       searchBar.appendChild(input);
 
       const expandBtn = el('button', 'fold-btn', '⊞');
