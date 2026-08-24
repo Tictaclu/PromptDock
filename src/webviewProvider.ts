@@ -1084,8 +1084,6 @@ function renderPanelHtml(cspSource: string): string {
         }
         card.classList.remove('card-editing');
         addedPromptIds.delete(row.id);
-        insertBtn.disabled = false; insertBtn.className = 'action-btn'; insertBtn.title = 'Save this prompt to My Templates';
-        insertBtn.querySelector('.btn-icon').textContent = '+'; insertBtn.querySelector('span:last-child').textContent = 'Add';
       });
       const cancelBtn = el('button', 'card-edit-cancel', 'Cancel');
       cancelBtn.title = 'Discard edits';
@@ -1115,20 +1113,24 @@ function renderPanelHtml(cspSource: string): string {
         vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
       });
 
-      const isAdded = addedPromptIds.has(row.id);
-      const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '+', isAdded ? '' : 'Add');
-      insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
-      insertBtn.disabled = isAdded;
-      if (!isAdded) {
-        insertBtn.addEventListener('click', () => {
-          addedPromptIds.add(row.id);
-          vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
-          insertBtn.disabled = true;
-          insertBtn.querySelector('.btn-icon').textContent = '✓';
-          insertBtn.querySelector('span:last-child').textContent = '';
-          insertBtn.className = 'action-btn done';
-          insertBtn.title = 'Already added to My Templates';
-        });
+      const alreadyTemplate = row.id.startsWith('template:') || row.id.startsWith('preset:');
+      if (!alreadyTemplate) {
+        const isAdded = addedPromptIds.has(row.id);
+        const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '+', isAdded ? '' : 'Add');
+        insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
+        insertBtn.disabled = isAdded;
+        if (!isAdded) {
+          insertBtn.addEventListener('click', () => {
+            addedPromptIds.add(row.id);
+            vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
+            insertBtn.disabled = true;
+            insertBtn.querySelector('.btn-icon').textContent = '✓';
+            insertBtn.querySelector('span:last-child').textContent = '';
+            insertBtn.className = 'action-btn done';
+            insertBtn.title = 'Already added to My Templates';
+          });
+        }
+        actions.appendChild(insertBtn);
       }
 
       const editBtn = makeBtn('action-btn', '✎', 'Edit');
@@ -1136,7 +1138,6 @@ function renderPanelHtml(cspSource: string): string {
       editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
 
       actions.appendChild(copyBtn);
-      actions.appendChild(insertBtn);
       actions.appendChild(editBtn);
       footer.appendChild(actions);
       card.appendChild(footer);
