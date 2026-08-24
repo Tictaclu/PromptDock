@@ -1162,13 +1162,17 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
     }
 
     function renderFolderSection(icon, title, rows, key) {
-      const section = el('div', 'folder-section' + (expandedSections.has(key) ? '' : ' collapsed'));
+      const filtered = rows.filter((r) => matchesRow(r, query));
+      if (query && filtered.length === 0) return null;
+
+      const isExpanded = query ? true : expandedSections.has(key);
+      const section = el('div', 'folder-section' + (isExpanded ? '' : ' collapsed'));
 
       const titleEl = el('div', 'folder-title');
       titleEl.title = 'Click to expand or collapse';
       titleEl.appendChild(el('span', 'chevron', '▾'));
       titleEl.appendChild(el('span', '', icon + ' ' + title));
-      titleEl.appendChild(el('span', 'badge', String(rows.length)));
+      titleEl.appendChild(el('span', 'badge', String(query ? filtered.length : rows.length)));
       titleEl.addEventListener('click', () => {
         section.classList.toggle('collapsed');
         if (section.classList.contains('collapsed')) expandedSections.delete(key); else expandedSections.add(key);
@@ -1176,9 +1180,8 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       section.appendChild(titleEl);
 
       const body = el('div', 'folder-body');
-      const filtered = rows.filter((r) => matchesRow(r, query));
       if (filtered.length === 0) {
-        body.appendChild(el('div', 'empty', query ? 'No matching prompts.' : 'No prompts here.'));
+        body.appendChild(el('div', 'empty', 'No prompts here.'));
       } else {
         for (const r of filtered) body.appendChild(renderPromptCard(r));
       }
@@ -1251,10 +1254,12 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
 
         for (const folder of state.templates.folders) {
           const rows = [...folder.presets, ...folder.templates];
-          app.appendChild(renderFolderSection('📁', folder.name, rows, 'folder:' + folder.id));
+          const sec = renderFolderSection('📁', folder.name, rows, 'folder:' + folder.id);
+          if (sec) app.appendChild(sec);
         }
         if (state.templates.unfiled.length > 0) {
-          app.appendChild(renderFolderSection('📄', 'Unfiled', state.templates.unfiled, 'unfiled'));
+          const sec = renderFolderSection('📄', 'Unfiled', state.templates.unfiled, 'unfiled');
+          if (sec) app.appendChild(sec);
         }
       } else {
         const source = state.sources.find((s) => s.source === sectionKey);
