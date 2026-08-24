@@ -639,7 +639,7 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     'promptdock.section',
     `PromptDock: ${section === 'templates' ? 'My Templates' : SOURCE_LABELS[section as PromptSource]}`,
     vscode.ViewColumn.Beside,
-    { enableScripts: true, localResourceRoots: [extensionUri] },
+    { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
   panel.webview.html = renderHtml(panel.webview.cspSource);
 
