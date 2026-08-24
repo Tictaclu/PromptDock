@@ -979,6 +979,9 @@ function renderPanelHtml(cspSource: string): string {
     font-family: inherit;
     font-size: 11px;
     font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
   .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
   .action-btn.done {
@@ -1085,8 +1088,10 @@ function renderPanelHtml(cspSource: string): string {
         card.classList.remove('card-editing');
         copiedPromptIds.delete(row.id);
         addedPromptIds.delete(row.id);
-        copyBtn.disabled = false; copyBtn.textContent = 'Copy'; copyBtn.className = 'action-btn'; copyBtn.title = 'Copy prompt to clipboard';
-        insertBtn.disabled = false; insertBtn.textContent = 'Add To Template'; insertBtn.className = 'action-btn'; insertBtn.title = 'Save this prompt to My Templates';
+        copyBtn.disabled = false; copyBtn.className = 'action-btn'; copyBtn.title = 'Copy prompt to clipboard';
+        copyBtn.querySelector('.btn-icon').textContent = '⎘'; copyBtn.querySelector('span:last-child').textContent = 'Copy';
+        insertBtn.disabled = false; insertBtn.className = 'action-btn'; insertBtn.title = 'Save this prompt to My Templates';
+        insertBtn.querySelector('.btn-icon').textContent = '+'; insertBtn.querySelector('span:last-child').textContent = 'Add';
       });
       const cancelBtn = el('button', 'card-edit-cancel', 'Cancel');
       cancelBtn.title = 'Discard edits';
@@ -1101,8 +1106,17 @@ function renderPanelHtml(cspSource: string): string {
 
       const actions = el('div', 'prompt-actions');
 
+      function makeBtn(cls, icon, label) {
+        const b = document.createElement('button');
+        b.className = cls;
+        const i = el('span', 'btn-icon', icon);
+        const t = el('span', '', label);
+        b.appendChild(i); b.appendChild(t);
+        return b;
+      }
+
       const isCopied = copiedPromptIds.has(row.id);
-      const copyBtn = el('button', isCopied ? 'action-btn done' : 'action-btn', isCopied ? '✓' : 'Copy');
+      const copyBtn = makeBtn(isCopied ? 'action-btn done' : 'action-btn', isCopied ? '✓' : '⎘', isCopied ? '' : 'Copy');
       copyBtn.title = isCopied ? 'Copied' : 'Copy prompt to clipboard';
       copyBtn.disabled = isCopied;
       if (!isCopied) {
@@ -1110,14 +1124,15 @@ function renderPanelHtml(cspSource: string): string {
           copiedPromptIds.add(row.id);
           vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
           copyBtn.disabled = true;
-          copyBtn.textContent = '✓';
+          copyBtn.querySelector('.btn-icon').textContent = '✓';
+          copyBtn.querySelector('span:last-child').textContent = '';
           copyBtn.className = 'action-btn done';
           copyBtn.title = 'Copied';
         });
       }
 
       const isAdded = addedPromptIds.has(row.id);
-      const insertBtn = el('button', isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : 'Add To Template');
+      const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '+', isAdded ? '' : 'Add');
       insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
       insertBtn.disabled = isAdded;
       if (!isAdded) {
@@ -1125,13 +1140,14 @@ function renderPanelHtml(cspSource: string): string {
           addedPromptIds.add(row.id);
           vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
           insertBtn.disabled = true;
-          insertBtn.textContent = '✓';
+          insertBtn.querySelector('.btn-icon').textContent = '✓';
+          insertBtn.querySelector('span:last-child').textContent = '';
           insertBtn.className = 'action-btn done';
           insertBtn.title = 'Already added to My Templates';
         });
       }
 
-      const editBtn = el('button', 'action-btn', 'Edit');
+      const editBtn = makeBtn('action-btn', '✎', 'Edit');
       editBtn.title = 'Edit prompt text';
       editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
 
