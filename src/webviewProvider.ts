@@ -1311,7 +1311,7 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
 
   if (sharedSectionPanel) {
     sharedSectionPanel.title = panelTitle;
-    sharedSectionPanel.reveal(vscode.ViewColumn.Beside);
+    sharedSectionPanel.reveal(undefined, true);
     sharedSectionPanel.webview.postMessage({ type: 'state', state: buildState(storage), section });
     if (scrollToId) sharedSectionPanel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
     return;
