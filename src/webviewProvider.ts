@@ -1048,6 +1048,7 @@ function renderPanelHtml(cspSource: string): string {
     function scrollToPrompt(promptId) {
       document.querySelectorAll('.folder-section.collapsed').forEach((s) => s.classList.remove('collapsed'));
       requestAnimationFrame(() => {
+        document.querySelectorAll('.prompt-card.highlight').forEach((c) => c.classList.remove('highlight'));
         const card = document.querySelector('[data-prompt-id="' + promptId + '"]');
         if (!card) return;
         card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
