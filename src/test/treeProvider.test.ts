@@ -120,7 +120,10 @@ suite('PromptDockTreeProvider — imported prompt grouping', () => {
       projectGroups.map((g) => g.project),
       ['RecentProject', 'OldProject'],
     );
-    assert.strictEqual(projectGroups.find((g) => g.project === 'OldProject')!.description, '2');
+    assert.strictEqual(
+      projectGroups.find((g) => g.project === 'OldProject')!.description,
+      `2 · ${new Date(2000).toLocaleDateString()}`,
+    );
   });
 
   test('a ProjectGroupItem groups its prompts into one SessionGroupItem per session, titled by the earliest prompt, newest-activity first', async () => {
@@ -142,7 +145,7 @@ suite('PromptDockTreeProvider — imported prompt grouping', () => {
     );
     const s1 = sessions.find((s) => s.sessionId === 's1')!;
     assert.strictEqual(s1.label, 'First in s1');
-    assert.strictEqual(s1.description, `2 · ${new Date(2000).toLocaleString()}`);
+    assert.strictEqual(s1.description, `2 · ${new Date(2000).toLocaleDateString()}`);
   });
 
   test('a SessionGroupItem lists only that session\'s prompts, newest-first', async () => {
