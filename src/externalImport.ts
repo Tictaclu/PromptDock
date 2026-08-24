@@ -379,7 +379,7 @@ export async function scanCopilotChatPrompts(
     const chatSessionsDir = path.join(wsDirPath, 'chatSessions');
     const files = await readDirSafe(chatSessionsDir);
     for (const file of files) {
-      if (!file.endsWith('.json')) {
+      if (!file.endsWith('.jsonl') && !file.endsWith('.json')) {
         continue;
       }
       const filePath = path.join(chatSessionsDir, file);
@@ -392,7 +392,9 @@ export async function scanCopilotChatPrompts(
       }
       let data: any;
       try {
-        data = JSON.parse(content);
+        const firstLine = content.trimStart().split('\n')[0];
+        const parsed = JSON.parse(firstLine);
+        data = parsed?.v ?? parsed;
       } catch {
         continue;
       }

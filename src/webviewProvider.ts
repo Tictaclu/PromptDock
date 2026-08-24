@@ -872,7 +872,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
     border: 1px solid var(--vscode-input-border, transparent);
     border-radius: 6px;
     padding: 6px 12px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
   }
   .search-bar input {
     flex: 1;
@@ -883,21 +883,21 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
     font-family: inherit;
     font-size: 13px;
   }
-  .search-bar-btn {
+  .search-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
+  .search-row .search-bar { flex: 1; }
+  .fold-btn {
     background: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 15px;
     line-height: 1;
-    padding: 3px 6px;
+    padding: 4px 5px;
     color: inherit;
     opacity: 0.6;
-    white-space: nowrap;
     flex-shrink: 0;
-    font-family: inherit;
   }
-  .search-bar-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); border-color: var(--vscode-widget-border, transparent); }
+  .fold-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); border-color: var(--vscode-widget-border, transparent); }
   .folder-section { margin-bottom: 20px; }
   .folder-title {
     display: flex;
@@ -1219,9 +1219,10 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       input.value = query;
       input.addEventListener('input', () => { query = input.value; render(); });
       searchBar.appendChild(input);
-      const expandAllBtn = el('button', 'search-bar-btn', 'Expand All');
-      expandAllBtn.title = 'Expand all folders';
-      expandAllBtn.addEventListener('click', () => {
+
+      const expandBtn = el('button', 'fold-btn', '⊞');
+      expandBtn.title = 'Expand all folders';
+      expandBtn.addEventListener('click', () => {
         if (sectionKey === 'templates') {
           for (const folder of state.templates.folders) expandedSections.add('folder:' + folder.id);
           if (state.templates.unfiled.length > 0) expandedSections.add('unfiled');
@@ -1231,7 +1232,14 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
         }
         render();
       });
-      searchBar.appendChild(expandAllBtn);
+      const collapseBtn = el('button', 'fold-btn', '⊟');
+      collapseBtn.title = 'Collapse all folders';
+      collapseBtn.addEventListener('click', () => { expandedSections.clear(); render(); });
+
+      const searchRow = el('div', 'search-row');
+      searchRow.appendChild(searchBar);
+      searchRow.appendChild(expandBtn);
+      searchRow.appendChild(collapseBtn);
 
       if (sectionKey === 'templates') {
         const total = state.templates.unfiled.length + state.templates.folders.reduce((n, f) => n + f.templates.length + f.presets.length, 0);
@@ -1239,7 +1247,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
         header.appendChild(el('span', 'section-title', '⭐ My Templates'));
         header.appendChild(el('span', 'badge', String(total)));
         app.appendChild(header);
-        app.appendChild(searchBar);
+        app.appendChild(searchRow);
 
         for (const folder of state.templates.folders) {
           const rows = [...folder.presets, ...folder.templates];
@@ -1256,7 +1264,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
         header.appendChild(el('span', 'section-title', source.icon + ' ' + source.label));
         header.appendChild(el('span', 'badge', String(source.count)));
         app.appendChild(header);
-        app.appendChild(searchBar);
+        app.appendChild(searchRow);
 
         let any = false;
         for (const project of source.projects) {
