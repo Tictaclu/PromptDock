@@ -673,6 +673,12 @@ function renderHtml(cspSource: string): string {
       newWindowBtn.title = 'Open this section in a detached editor panel';
       newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
       bar.appendChild(newWindowBtn);
+      if (sectionKey === 'templates') {
+        const newFolderBtn = el('button', 'new-window-btn', '+ New Folder');
+        newFolderBtn.title = 'Create a new folder in My Templates';
+        newFolderBtn.addEventListener('click', () => vscode.postMessage({ type: 'createFolder' }));
+        bar.appendChild(newFolderBtn);
+      }
       container.appendChild(bar);
 
       return container;
@@ -786,6 +792,17 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'moveTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
         await this.storage.updateTemplate(rawId, { folderId: message.targetFolderId as string });
+        return;
+      }
+      if (message?.type === 'createFolder') {
+        const name = await vscode.window.showInputBox({
+          prompt: 'New folder name',
+          placeHolder: 'e.g. My Prompts',
+          validateInput: (v) => v.trim() ? null : 'Name cannot be empty',
+        });
+        if (name?.trim()) {
+          await this.storage.createFolder(name.trim());
+        }
         return;
       }
     });
@@ -1177,7 +1194,16 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
           vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" is already in My Templates`, 3000);
           return;
         }
-        await storage.createTemplate(row.name, row.content);
+        let folderId: string | undefined;
+        if (section !== 'templates') {
+          const folderName = SOURCE_LABELS[section as PromptSource];
+          let folder = storage.getFolders().find((f) => f.name === folderName);
+          if (!folder) {
+            folder = await storage.createFolder(folderName);
+          }
+          folderId = folder.id;
+        }
+        await storage.createTemplate(row.name, row.content, folderId);
         vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" added to My Templates`, 3000);
       }
       return;
