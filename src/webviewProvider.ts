@@ -827,10 +827,14 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
   }
 }
 
+function safeJson(value: unknown): string {
+  return JSON.stringify(value ?? null).replace(/<\/script>/gi, '<\\/script>');
+}
+
 function renderPanelHtml(cspSource: string, initialState?: WebviewState, initialSection?: string): string {
   const scriptNonce = nonce();
-  const stateJson = initialState ? JSON.stringify(initialState) : 'null';
-  const sectionJson = initialSection ? JSON.stringify(initialSection) : 'null';
+  const stateJson = safeJson(initialState);
+  const sectionJson = safeJson(initialSection);
   return /* html */ `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1367,6 +1371,7 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
   const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section: sharedSectionCurrentSection });
   const changeListener = storage.onDidChange(post);
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
+  panel.onDidChangeViewState(({ webviewPanel }) => { if (webviewPanel.visible) post(); });
 
   if (scrollToId) setTimeout(() => panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId }), 150);
 
