@@ -993,6 +993,7 @@ function renderPanelHtml(cspSource: string): string {
     border-color: transparent;
   }
   .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
+  .action-btn.action-btn-danger:hover { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); color: var(--vscode-errorForeground, #f48771); border-color: var(--vscode-inputValidation-errorBorder, #be1100); }
   .empty { opacity: 0.5; font-size: 13px; padding: 24px 0; text-align: center; }
   .card-edit-form { display: none; flex-direction: column; gap: 6px; padding: 8px 0 4px; }
   .card-editing .card-edit-form { display: flex; }
@@ -1134,6 +1135,12 @@ function renderPanelHtml(cspSource: string): string {
       editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
 
       actions.appendChild(copyBtn);
+      if (row.id.startsWith('template:')) {
+        const delBtn = makeBtn('action-btn action-btn-danger', '🗑', 'Delete');
+        delBtn.title = 'Delete this template';
+        delBtn.addEventListener('click', () => vscode.postMessage({ type: 'deleteTemplate', id: row.id }));
+        actions.appendChild(delBtn);
+      }
       actions.appendChild(editBtn);
       footer.appendChild(actions);
       card.appendChild(footer);
@@ -1358,6 +1365,11 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
         await storage.createTemplate(base.name, content, folderId);
         vscode.window.setStatusBarMessage(`PromptDock: "${base.name}" added to My Templates`, 3000);
       }
+      return;
+    }
+    if (message?.type === 'deleteTemplate') {
+      const rawId = (message.id as string).replace(/^template:/, '');
+      await storage.deleteTemplate(rawId);
       return;
     }
     if (message?.type === 'sync') {
