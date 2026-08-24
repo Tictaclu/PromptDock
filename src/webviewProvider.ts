@@ -461,7 +461,7 @@ function renderHtml(cspSource: string): string {
       // Normal view
       const normal = el('div', 'row-normal');
       const name = el('div', 'row-name', row.name);
-      name.title = 'Click to open in New Session';
+      name.title = row.name;
       name.addEventListener('click', () => vscode.postMessage({ type: 'openDetail', id: row.id }));
       normal.appendChild(name);
       if (row.meta) normal.appendChild(el('div', 'row-meta', row.meta));
@@ -673,10 +673,6 @@ function renderHtml(cspSource: string): string {
       input.addEventListener('input', () => { queries[sectionKey] = input.value; rerenderCard(sectionKey); });
       search.appendChild(input);
       bar.appendChild(search);
-      const newWindowBtn = el('button', 'new-window-btn', '+ New Session');
-      newWindowBtn.title = 'Open this section in a detached editor panel';
-      newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
-      bar.appendChild(newWindowBtn);
       if (sectionKey === 'templates') {
         const newFolderBtn = el('button', 'new-window-btn', '📁');
         newFolderBtn.title = 'Create a new folder in My Templates';
