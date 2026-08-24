@@ -1050,6 +1050,13 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       return !q || text.toLowerCase().includes(q.toLowerCase());
     }
 
+    function matchesRow(row, q) {
+      if (!q) return true;
+      if (matches(row.name, q) || matches(row.content, q)) return true;
+      if (row.meta) return matches(row.meta, q);
+      return false;
+    }
+
     function scrollToPrompt(promptId) {
       document.querySelectorAll('.folder-section.collapsed').forEach((s) => s.classList.remove('collapsed'));
       requestAnimationFrame(() => {
@@ -1168,7 +1175,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
       section.appendChild(titleEl);
 
       const body = el('div', 'folder-body');
-      const filtered = rows.filter((r) => matches(r.name, query) || matches(r.content, query));
+      const filtered = rows.filter((r) => matchesRow(r, query));
       if (filtered.length === 0) {
         body.appendChild(el('div', 'empty', query ? 'No matching prompts.' : 'No prompts here.'));
       } else {
@@ -1276,7 +1283,7 @@ function renderPanelHtml(cspSource: string, initialState?: WebviewState, initial
           const projectBody = el('div', 'folder-body');
           let projectHasMatch = false;
           for (const session of project.sessions) {
-            const filtered = session.prompts.filter((r) => matches(r.name, query) || matches(r.content, query));
+            const filtered = session.prompts.filter((r) => matchesRow(r, query));
             if (query && filtered.length === 0) continue;
             projectHasMatch = true;
             projectBody.appendChild(renderSessionGroup(session, filtered));
