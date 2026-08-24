@@ -1300,31 +1300,36 @@ function renderPanelHtml(cspSource: string): string {
 </html>`;
 }
 
-const openSectionPanels = new Map<string, vscode.WebviewPanel>();
+let sharedSectionPanel: vscode.WebviewPanel | undefined;
+let sharedSectionCurrentSection = 'templates';
 
-/** Opens a single section (My Templates, or one source) as its own detached webview panel/tab. Reuses an existing panel for the same section. */
+/** Opens the shared detached webview panel. Reuses the existing panel and switches its section if already open. */
 function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string, scrollToId?: string): void {
-  const existing = openSectionPanels.get(section);
-  if (existing) {
-    existing.reveal(vscode.ViewColumn.Beside);
-    if (scrollToId) existing.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
+  sharedSectionCurrentSection = section;
+  const panelTitle = `PromptDock: ${section === 'templates' ? 'My Templates' : SOURCE_LABELS[section as PromptSource]}`;
+
+  if (sharedSectionPanel) {
+    sharedSectionPanel.title = panelTitle;
+    sharedSectionPanel.reveal(vscode.ViewColumn.Beside);
+    sharedSectionPanel.webview.postMessage({ type: 'state', state: buildState(storage), section });
+    if (scrollToId) sharedSectionPanel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
     return;
   }
 
   const panel = vscode.window.createWebviewPanel(
     'promptdock.section',
-    `PromptDock: ${section === 'templates' ? 'My Templates' : SOURCE_LABELS[section as PromptSource]}`,
+    panelTitle,
     vscode.ViewColumn.Beside,
     { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
-  openSectionPanels.set(section, panel);
+  sharedSectionPanel = panel;
   panel.webview.html = renderPanelHtml(panel.webview.cspSource);
 
-  const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section });
+  const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section: sharedSectionCurrentSection });
   post();
   if (scrollToId) panel.webview.postMessage({ type: 'scrollTo', promptId: scrollToId });
   const changeListener = storage.onDidChange(post);
-  panel.onDidDispose(() => { changeListener.dispose(); openSectionPanels.delete(section); });
+  panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
 
   panel.webview.onDidReceiveMessage(async (message) => {
     if (message?.type === 'use') {
@@ -1345,8 +1350,8 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
           return;
         }
         let folderId: string | undefined;
-        if (section !== 'templates') {
-          const folderName = SOURCE_LABELS[section as PromptSource];
+        if (sharedSectionCurrentSection !== 'templates') {
+          const folderName = SOURCE_LABELS[sharedSectionCurrentSection as PromptSource];
           let folder = storage.getFolders().find((f) => f.name === folderName);
           if (!folder) {
             folder = await storage.createFolder(folderName);
