@@ -1,0 +1,251 @@
+{
+  "name": "promptdock",
+  "displayName": "PromptDock",
+  "description": "Manage, reuse, and track your favorite AI prompt templates right from the VS Code sidebar.",
+  "version": "0.1.0",
+  "publisher": "promptdock",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tictaclu/PromptDock.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Tictaclu/PromptDock/issues"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "icon": "resources/icon.png",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "promptdock",
+          "title": "PromptDock",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "promptdock": [
+        {
+          "type": "webview",
+          "id": "promptdock.view",
+          "name": "Prompts",
+          "icon": "resources/activity-icon.svg"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "promptdock.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.searchPrompts",
+        "title": "Search Prompts...",
+        "icon": "$(search)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.syncExternalHistory",
+        "title": "Sync Prompts from Claude Code / Copilot Chat / Codex",
+        "icon": "$(sync)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.createTemplate",
+        "title": "New Prompt Template...",
+        "icon": "$(add)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.createFolder",
+        "title": "New Folder...",
+        "icon": "$(new-folder)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.renameFolder",
+        "title": "Rename Folder",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.deleteFolder",
+        "title": "Delete Folder",
+        "icon": "$(trash)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.editTemplate",
+        "title": "Edit",
+        "icon": "$(edit)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.renameTemplate",
+        "title": "Rename",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.deleteTemplate",
+        "title": "Delete",
+        "icon": "$(trash)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.usePrompt",
+        "title": "Use Prompt (Copy / Insert)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.copyPrompt",
+        "title": "Copy to Clipboard",
+        "icon": "$(copy)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.insertPrompt",
+        "title": "Insert at Cursor",
+        "icon": "$(insert)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.importPreset",
+        "title": "Import to My Templates",
+        "icon": "$(cloud-download)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.importAllPresets",
+        "title": "Import All Presets",
+        "icon": "$(cloud-download)",
+        "category": "PromptDock"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "promptdock.refresh",
+          "when": "view == promptdock.view",
+          "group": "navigation@1"
+        },
+        {
+          "command": "promptdock.syncExternalHistory",
+          "when": "view == promptdock.view",
+          "group": "navigation@2"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "promptdock.copyPrompt",
+          "when": "view == promptdock.view && viewItem =~ /Prompt$/",
+          "group": "inline@1"
+        },
+        {
+          "command": "promptdock.insertPrompt",
+          "when": "view == promptdock.view && viewItem =~ /Prompt$/",
+          "group": "inline@2"
+        },
+        {
+          "command": "promptdock.editTemplate",
+          "when": "view == promptdock.view && viewItem == templatePrompt",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "promptdock.renameTemplate",
+          "when": "view == promptdock.view && viewItem == templatePrompt",
+          "group": "1_edit@2"
+        },
+        {
+          "command": "promptdock.deleteTemplate",
+          "when": "view == promptdock.view && viewItem == templatePrompt",
+          "group": "9_delete@1"
+        },
+        {
+          "command": "promptdock.createFolder",
+          "when": "view == promptdock.view && viewItem == templatesGroup",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "promptdock.importAllPresets",
+          "when": "view == promptdock.view && viewItem == templatesGroup",
+          "group": "1_edit@2"
+        },
+        {
+          "command": "promptdock.createTemplate",
+          "when": "view == promptdock.view && viewItem == templateFolder",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "promptdock.renameFolder",
+          "when": "view == promptdock.view && viewItem == templateFolder",
+          "group": "1_edit@2"
+        },
+        {
+          "command": "promptdock.deleteFolder",
+          "when": "view == promptdock.view && viewItem == templateFolder",
+          "group": "9_delete@1"
+        },
+        {
+          "command": "promptdock.importPreset",
+          "when": "view == promptdock.view && viewItem == presetPrompt",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "promptdock.syncExternalHistory",
+          "when": "view == promptdock.view && viewItem =~ /^(sourceGroup|projectGroup|sessionGroup)$/",
+          "group": "inline@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "PromptDock",
+      "properties": {
+        "promptdock.defaultAction": {
+          "type": "string",
+          "enum": [
+            "copyAndInsert",
+            "copyOnly",
+            "insertOnly"
+          ],
+          "enumDescriptions": [
+            "Copy to clipboard, and also insert at the cursor if an editor is active.",
+            "Only copy the prompt to the clipboard.",
+            "Only insert the prompt at the cursor (requires an active editor)."
+          ],
+          "default": "copyAndInsert",
+          "description": "Default behavior when clicking a prompt in the PromptDock view."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.js --production",
+    "watch": "node esbuild.js --watch",
+    "compile": "tsc -p ./ --noEmit",
+    "compile-tests": "tsc -p ./",
+    "pretest": "npm run compile-tests && npm run build",
+    "test": "vscode-test",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-cli": "^0.0.15",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^2.24.0",
+    "esbuild": "^0.20.0",
+    "mocha": "^11.8.0",
+    "typescript": "^5.4.0"
+  }
+}
