@@ -2,8 +2,6 @@ import * as vscode from 'vscode';
 import { Storage } from './storage';
 import { BUILTIN_PRESETS, PRESET_CATEGORY_TO_FOLDER } from './presets';
 import { ImportedPrompt, PromptSource, SOURCE_LABELS } from './types';
-import { showPromptDetailPanel } from './searchPanel';
-import { SearchResult } from './search';
 
 const SOURCE_ORDER: PromptSource[] = ['claude-code', 'copilot-chat', 'codex'];
 const SOURCE_ICONS: Record<PromptSource, string> = { 'claude-code': '🟠', 'copilot-chat': '🔵', codex: '🟢' };
@@ -809,18 +807,8 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'openDetail') {
         const rawId = (message.id as string).slice('imported:'.length);
-        const prompt = this.storage.getImportedPrompts().find((p) => p.id === rawId);
-        if (prompt) {
-          const result: SearchResult = {
-            kind: 'imported',
-            id: rawId,
-            name: prompt.name,
-            content: prompt.content,
-            meta: `${SOURCE_LABELS[prompt.source]} · ${prompt.project}`,
-            icon: new vscode.ThemeIcon('comment-discussion'),
-          };
-          showPromptDetailPanel(this.storage, result);
-        }
+        const source = rawId.split(':')[0] as PromptSource;
+        openSectionPanel(this.extensionUri, this.storage, source);
         return;
       }
       if (message?.type === 'createFolder') {
