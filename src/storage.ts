@@ -67,7 +67,7 @@ export class Storage {
 
   async updateTemplate(
     id: string,
-    updates: Partial<Pick<PromptTemplate, 'name' | 'content'>>,
+    updates: Partial<Pick<PromptTemplate, 'name' | 'content' | 'folderId'>>,
   ): Promise<void> {
     const templates = this.getTemplates();
     const index = templates.findIndex((t) => t.id === id);

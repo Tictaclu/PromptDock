@@ -354,16 +354,12 @@ function renderHtml(cspSource: string): string {
   .group-header .label { font-size: 13px; }
   .group-header .count { opacity: 0.6; font-size: 11px; margin-left: auto; }
   .group-children { margin-left: 16px; border-left: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); padding-left: 4px; }
-  .row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    border-radius: 4px;
-  }
+  .row { display: flex; flex-direction: column; padding: 4px 8px; border-radius: 4px; gap: 0; }
   .row:hover { background: var(--vscode-list-hoverBackground); }
-  .row .row-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-  .row .row-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
+  .row-normal { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+  .row.editing .row-normal { display: none; }
+  .row-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .row-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
   .actions { display: inline-flex; gap: 2px; }
   .actions button {
     background: transparent;
@@ -376,6 +372,45 @@ function renderHtml(cspSource: string): string {
     line-height: 1;
   }
   .actions button:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); }
+  .row-edit-form { display: none; flex-direction: column; gap: 6px; padding: 4px 0; width: 100%; }
+  .row.editing .row-edit-form { display: flex; }
+  .row-edit-form input, .row-edit-form textarea {
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, var(--vscode-widget-border, transparent));
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    width: 100%;
+    box-sizing: border-box;
+    outline: none;
+  }
+  .row-edit-form textarea { resize: vertical; min-height: 64px; }
+  .row-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .save-btn {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border: none;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .save-btn:hover { background: var(--vscode-button-hoverBackground); }
+  .cancel-btn {
+    background: transparent;
+    color: var(--vscode-foreground);
+    border: 1px solid var(--vscode-widget-border, transparent);
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    opacity: 0.7;
+  }
+  .cancel-btn:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
   .empty { opacity: 0.5; font-size: 12px; padding: 6px 8px; }
 </style>
 </head>
@@ -407,18 +442,70 @@ function renderHtml(cspSource: string): string {
     }
 
     function renderRow(row) {
+      const isTemplate = row.id && row.id.startsWith('template:');
       const r = el('div', 'row');
+
+      // Normal view
+      const normal = el('div', 'row-normal');
       const name = el('div', 'row-name', row.name);
       name.title = row.content;
       name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
-      r.appendChild(name);
-      if (row.meta) r.appendChild(el('div', 'row-meta', row.meta));
+      normal.appendChild(name);
+      if (row.meta) normal.appendChild(el('div', 'row-meta', row.meta));
+
       const actions = el('div', 'actions');
       const copyBtn = el('button', '', '⧉');
       copyBtn.title = 'Copy to Clipboard';
       copyBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }); });
       actions.appendChild(copyBtn);
-      r.appendChild(actions);
+
+      if (isTemplate) {
+        const editBtn = el('button', '', '✏');
+        editBtn.title = 'Edit this template';
+        editBtn.addEventListener('click', (e) => { e.stopPropagation(); r.classList.add('editing'); });
+        actions.appendChild(editBtn);
+
+        const delBtn = el('button', '', '🗑');
+        delBtn.title = 'Move to Deleted folder';
+        delBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'deleteTemplate', id: row.id }); });
+        actions.appendChild(delBtn);
+      }
+
+      normal.appendChild(actions);
+      r.appendChild(normal);
+
+      if (isTemplate) {
+        const form = el('div', 'row-edit-form');
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.value = row.name;
+        nameInput.placeholder = 'Template name';
+        form.appendChild(nameInput);
+
+        const contentArea = document.createElement('textarea');
+        contentArea.value = row.content;
+        contentArea.placeholder = 'Template content';
+        form.appendChild(contentArea);
+
+        const editActions = el('div', 'row-edit-actions');
+
+        const saveBtn = el('button', 'save-btn', 'Save');
+        saveBtn.title = 'Save changes to this template';
+        saveBtn.addEventListener('click', () => {
+          vscode.postMessage({ type: 'updateTemplate', id: row.id, name: nameInput.value, content: contentArea.value });
+        });
+        editActions.appendChild(saveBtn);
+
+        const cancelBtn = el('button', 'cancel-btn', 'Cancel');
+        cancelBtn.title = 'Discard changes';
+        cancelBtn.addEventListener('click', () => r.classList.remove('editing'));
+        editActions.appendChild(cancelBtn);
+
+        form.appendChild(editActions);
+        r.appendChild(form);
+      }
+
       return r;
     }
 
@@ -663,6 +750,21 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'sync') {
         this.postState();
         vscode.window.setStatusBarMessage('PromptDock: Prompts synced', 2000);
+        return;
+      }
+      if (message?.type === 'deleteTemplate') {
+        const rawId = (message.id as string).slice('template:'.length);
+        let deletedFolder = this.storage.getFolders().find((f) => f.name === 'Deleted');
+        if (!deletedFolder) {
+          deletedFolder = await this.storage.createFolder('Deleted');
+        }
+        await this.storage.updateTemplate(rawId, { folderId: deletedFolder.id });
+        return;
+      }
+      if (message?.type === 'updateTemplate') {
+        const rawId = (message.id as string).slice('template:'.length);
+        await this.storage.updateTemplate(rawId, { name: message.name, content: message.content });
+        return;
       }
     });
   }
@@ -818,6 +920,7 @@ function renderPanelHtml(cspSource: string): string {
     font-weight: 500;
   }
   .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+  .action-btn:disabled, .action-btn.added { opacity: 0.45; cursor: not-allowed; background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background)); }
   .action-btn.primary {
     background: var(--vscode-button-background);
     color: var(--vscode-button-foreground);
@@ -866,9 +969,20 @@ function renderPanelHtml(cspSource: string): string {
       copyBtn.title = 'Copy prompt to clipboard';
       copyBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }));
 
-      const insertBtn = el('button', 'action-btn primary', 'Add To Template');
-      insertBtn.title = 'Save this prompt to My Templates';
-      insertBtn.addEventListener('click', () => vscode.postMessage({ type: 'addTemplate', id: row.id }));
+      const isAdded = addedPromptIds.has(row.id);
+      const insertBtn = el('button', isAdded ? 'action-btn added' : 'action-btn primary', isAdded ? '✓ Added' : 'Add To Template');
+      insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
+      insertBtn.disabled = isAdded;
+      if (!isAdded) {
+        insertBtn.addEventListener('click', () => {
+          addedPromptIds.add(row.id);
+          vscode.postMessage({ type: 'addTemplate', id: row.id });
+          insertBtn.disabled = true;
+          insertBtn.textContent = '✓ Added';
+          insertBtn.className = 'action-btn added';
+          insertBtn.title = 'Already added to My Templates';
+        });
+      }
 
       actions.appendChild(copyBtn);
       actions.appendChild(insertBtn);
@@ -914,6 +1028,8 @@ function renderPanelHtml(cspSource: string): string {
       }
       return g;
     }
+
+    const addedPromptIds = new Set();
 
     function render() {
       const app = document.getElementById('app');
@@ -1034,6 +1150,11 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     if (message?.type === 'addTemplate') {
       const row = findPromptById(storage, message.id);
       if (row) {
+        const isDuplicate = storage.getTemplates().some((t) => t.name === row.name && t.content === row.content);
+        if (isDuplicate) {
+          vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" is already in My Templates`, 3000);
+          return;
+        }
         await storage.createTemplate(row.name, row.content);
         vscode.window.setStatusBarMessage(`PromptDock: "${row.name}" added to My Templates`, 3000);
       }
