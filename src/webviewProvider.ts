@@ -672,6 +672,322 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
   }
 }
 
+function renderPanelHtml(cspSource: string): string {
+  const scriptNonce = nonce();
+  return /* html */ `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${scriptNonce}';" />
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 20px 24px 40px;
+    font-family: var(--vscode-font-family);
+    font-size: var(--vscode-font-size);
+    color: var(--vscode-foreground);
+    background: var(--vscode-editor-background);
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  }
+  .section-title { font-size: 17px; font-weight: 700; }
+  .badge {
+    background: var(--vscode-badge-background);
+    color: var(--vscode-badge-foreground);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-input-border, transparent);
+    border-radius: 6px;
+    padding: 6px 12px;
+    margin-bottom: 20px;
+  }
+  .search-bar input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--vscode-input-foreground);
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .folder-section { margin-bottom: 20px; }
+  .folder-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 4px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    cursor: pointer;
+    user-select: none;
+  }
+  .folder-title:hover { background: var(--vscode-list-hoverBackground); border-radius: 4px; }
+  .folder-title .chevron { font-size: 14px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
+  .folder-section.collapsed .chevron { transform: rotate(-90deg); }
+  .folder-section.collapsed .folder-body { display: none; }
+  .session-group { margin-bottom: 16px; }
+  .session-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.6;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .session-label .session-date { margin-left: auto; font-weight: 400; }
+  .prompt-card {
+    background: var(--vscode-editorWidget-background);
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.1s ease;
+  }
+  .prompt-card:hover { border-color: var(--vscode-focusBorder); }
+  .prompt-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    cursor: pointer;
+    word-break: break-word;
+  }
+  .prompt-name:hover { color: var(--vscode-textLink-foreground); }
+  .prompt-preview {
+    font-size: 12px;
+    opacity: 0.6;
+    line-height: 1.55;
+    margin-bottom: 10px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .prompt-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .prompt-meta { font-size: 11px; opacity: 0.45; white-space: nowrap; }
+  .prompt-actions { display: flex; gap: 6px; flex-shrink: 0; }
+  .action-btn {
+    background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .action-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+  .action-btn.primary {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: transparent;
+  }
+  .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
+  .empty { opacity: 0.5; font-size: 13px; padding: 24px 0; text-align: center; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <script nonce="${scriptNonce}">
+    const vscode = acquireVsCodeApi();
+    let state = null;
+    let sectionKey = null;
+    let query = '';
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    function matches(text, q) {
+      return !q || text.toLowerCase().includes(q.toLowerCase());
+    }
+
+    function renderPromptCard(row) {
+      const card = el('div', 'prompt-card');
+
+      const name = el('div', 'prompt-name', row.name);
+      name.title = 'Click to copy & insert at cursor';
+      name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
+      card.appendChild(name);
+
+      const preview = el('div', 'prompt-preview', row.content);
+      card.appendChild(preview);
+
+      const footer = el('div', 'prompt-footer');
+      footer.appendChild(el('div', 'prompt-meta', row.meta || ''));
+
+      const actions = el('div', 'prompt-actions');
+
+      const copyBtn = el('button', 'action-btn', 'Copy');
+      copyBtn.title = 'Copy prompt to clipboard';
+      copyBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }));
+
+      const insertBtn = el('button', 'action-btn primary', 'Insert');
+      insertBtn.title = 'Insert prompt at cursor position';
+      insertBtn.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'insert' }));
+
+      actions.appendChild(copyBtn);
+      actions.appendChild(insertBtn);
+      footer.appendChild(actions);
+      card.appendChild(footer);
+      return card;
+    }
+
+    function renderFolderSection(icon, title, rows, key) {
+      const section = el('div', 'folder-section');
+
+      const titleEl = el('div', 'folder-title');
+      titleEl.title = 'Click to expand or collapse';
+      titleEl.appendChild(el('span', 'chevron', '▾'));
+      titleEl.appendChild(el('span', '', icon + ' ' + title));
+      titleEl.appendChild(el('span', 'badge', String(rows.length)));
+      titleEl.addEventListener('click', () => section.classList.toggle('collapsed'));
+      section.appendChild(titleEl);
+
+      const body = el('div', 'folder-body');
+      const filtered = rows.filter((r) => matches(r.name, query) || matches(r.content, query));
+      if (filtered.length === 0) {
+        body.appendChild(el('div', 'empty', query ? 'No matching prompts.' : 'No prompts here.'));
+      } else {
+        for (const r of filtered) body.appendChild(renderPromptCard(r));
+      }
+      section.appendChild(body);
+      return section;
+    }
+
+    function renderSessionGroup(session, rows) {
+      const g = el('div', 'session-group');
+
+      const label = el('div', 'session-label');
+      label.appendChild(el('span', '', '💬 ' + session.title));
+      label.appendChild(el('span', 'session-date', new Date(session.lastActivity).toLocaleDateString()));
+      g.appendChild(label);
+
+      if (rows.length === 0) {
+        g.appendChild(el('div', 'empty', 'No matching prompts.'));
+      } else {
+        for (const r of rows) g.appendChild(renderPromptCard(r));
+      }
+      return g;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      app.innerHTML = '';
+      if (!state) { app.appendChild(el('div', 'empty', 'Loading…')); return; }
+
+      const searchBar = el('div', 'search-bar');
+      searchBar.appendChild(el('span', '', '🔍'));
+      const input = document.createElement('input');
+      input.placeholder = 'Search prompts…';
+      input.value = query;
+      input.addEventListener('input', () => { query = input.value; render(); });
+      searchBar.appendChild(input);
+      app.appendChild(searchBar);
+
+      if (sectionKey === 'templates') {
+        const total = state.templates.unfiled.length + state.templates.folders.reduce((n, f) => n + f.templates.length + f.presets.length, 0);
+        const header = el('div', 'section-header');
+        header.appendChild(el('span', 'section-title', '⭐ My Templates'));
+        header.appendChild(el('span', 'badge', String(total)));
+        app.appendChild(header);
+
+        for (const folder of state.templates.folders) {
+          const rows = [...folder.presets, ...folder.templates];
+          app.appendChild(renderFolderSection('📁', folder.name, rows, 'folder:' + folder.id));
+        }
+        if (state.templates.unfiled.length > 0) {
+          app.appendChild(renderFolderSection('📄', 'Unfiled', state.templates.unfiled, 'unfiled'));
+        }
+      } else {
+        const source = state.sources.find((s) => s.source === sectionKey);
+        if (!source) return;
+
+        const header = el('div', 'section-header');
+        header.appendChild(el('span', 'section-title', source.icon + ' ' + source.label));
+        header.appendChild(el('span', 'badge', String(source.count)));
+        app.appendChild(header);
+
+        let any = false;
+        for (const project of source.projects) {
+          const projectSection = el('div', 'folder-section');
+
+          const projectTitle = el('div', 'folder-title');
+          projectTitle.title = 'Click to expand or collapse';
+          projectTitle.appendChild(el('span', 'chevron', '▾'));
+          projectTitle.appendChild(el('span', '', '📁 ' + project.name));
+          projectTitle.appendChild(el('span', 'badge', String(project.count)));
+          projectTitle.addEventListener('click', () => projectSection.classList.toggle('collapsed'));
+          projectSection.appendChild(projectTitle);
+
+          const projectBody = el('div', 'folder-body');
+          let projectHasMatch = false;
+          for (const session of project.sessions) {
+            const filtered = session.prompts.filter((r) => matches(r.name, query) || matches(r.content, query));
+            if (query && filtered.length === 0) continue;
+            projectHasMatch = true;
+            projectBody.appendChild(renderSessionGroup(session, filtered));
+          }
+          if (!projectHasMatch) {
+            if (query) continue;
+            projectBody.appendChild(el('div', 'empty', 'No prompts here.'));
+          }
+          projectSection.appendChild(projectBody);
+          app.appendChild(projectSection);
+          any = true;
+        }
+        if (!any) app.appendChild(el('div', 'empty', query ? 'No matching prompts.' : 'Nothing imported yet.'));
+      }
+
+      if (query) input.focus();
+    }
+
+    window.addEventListener('message', (event) => {
+      const msg = event.data;
+      if (msg.type === 'state') {
+        state = msg.state;
+        sectionKey = msg.section;
+        render();
+      }
+    });
+
+    vscode.postMessage({ type: 'ready' });
+  </script>
+</body>
+</html>`;
+}
+
 /** Opens a single section (My Templates, or one source) as its own detached webview panel/tab. */
 function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string): void {
   const panel = vscode.window.createWebviewPanel(
@@ -680,9 +996,9 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     vscode.ViewColumn.Beside,
     { enableScripts: true, localResourceRoots: [extensionUri], retainContextWhenHidden: true },
   );
-  panel.webview.html = renderHtml(panel.webview.cspSource);
+  panel.webview.html = renderPanelHtml(panel.webview.cspSource);
 
-  const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage) });
+  const post = () => panel.webview.postMessage({ type: 'state', state: buildState(storage), section });
   post();
   const changeListener = storage.onDidChange(post);
   panel.onDidDispose(() => changeListener.dispose());
