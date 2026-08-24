@@ -1066,14 +1066,17 @@ function renderPanelHtml(cspSource: string): string {
     }
 
     function renderFolderSection(icon, title, rows, key) {
-      const section = el('div', 'folder-section collapsed');
+      const section = el('div', 'folder-section' + (expandedSections.has(key) ? '' : ' collapsed'));
 
       const titleEl = el('div', 'folder-title');
       titleEl.title = 'Click to expand or collapse';
       titleEl.appendChild(el('span', 'chevron', '▾'));
       titleEl.appendChild(el('span', '', icon + ' ' + title));
       titleEl.appendChild(el('span', 'badge', String(rows.length)));
-      titleEl.addEventListener('click', () => section.classList.toggle('collapsed'));
+      titleEl.addEventListener('click', () => {
+        section.classList.toggle('collapsed');
+        if (section.classList.contains('collapsed')) expandedSections.delete(key); else expandedSections.add(key);
+      });
       section.appendChild(titleEl);
 
       const body = el('div', 'folder-body');
@@ -1105,6 +1108,7 @@ function renderPanelHtml(cspSource: string): string {
 
     const addedPromptIds = new Set();
     const copiedPromptIds = new Set();
+    const expandedSections = new Set();
 
     function render() {
       const app = document.getElementById('app');
@@ -1145,7 +1149,8 @@ function renderPanelHtml(cspSource: string): string {
 
         let any = false;
         for (const project of source.projects) {
-          const projectSection = el('div', 'folder-section collapsed');
+          const projectKey = 'project:' + project.name;
+          const projectSection = el('div', 'folder-section' + (expandedSections.has(projectKey) ? '' : ' collapsed'));
 
           const projectTitle = el('div', 'folder-title');
           projectTitle.title = 'Click to expand or collapse';
@@ -1159,7 +1164,10 @@ function renderPanelHtml(cspSource: string): string {
             vscode.postMessage({ type: 'sync', section: sectionKey });
           });
           projectTitle.appendChild(folderSyncBtn);
-          projectTitle.addEventListener('click', () => projectSection.classList.toggle('collapsed'));
+          projectTitle.addEventListener('click', () => {
+            projectSection.classList.toggle('collapsed');
+            if (projectSection.classList.contains('collapsed')) expandedSections.delete(projectKey); else expandedSections.add(projectKey);
+          });
           projectSection.appendChild(projectTitle);
 
           const projectBody = el('div', 'folder-body');
