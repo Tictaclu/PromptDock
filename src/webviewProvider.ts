@@ -1209,7 +1209,6 @@ function renderPanelHtml(cspSource: string): string {
         render();
       });
       searchBar.appendChild(expandAllBtn);
-      app.appendChild(searchBar);
 
       if (sectionKey === 'templates') {
         const total = state.templates.unfiled.length + state.templates.folders.reduce((n, f) => n + f.templates.length + f.presets.length, 0);
@@ -1217,6 +1216,7 @@ function renderPanelHtml(cspSource: string): string {
         header.appendChild(el('span', 'section-title', '⭐ My Templates'));
         header.appendChild(el('span', 'badge', String(total)));
         app.appendChild(header);
+        app.appendChild(searchBar);
 
         for (const folder of state.templates.folders) {
           const rows = [...folder.presets, ...folder.templates];
@@ -1233,6 +1233,7 @@ function renderPanelHtml(cspSource: string): string {
         header.appendChild(el('span', 'section-title', source.icon + ' ' + source.label));
         header.appendChild(el('span', 'badge', String(source.count)));
         app.appendChild(header);
+        app.appendChild(searchBar);
 
         let any = false;
         for (const project of source.projects) {
