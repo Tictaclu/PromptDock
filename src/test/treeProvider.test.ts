@@ -133,7 +133,7 @@ suite('PromptDockTreeProvider — imported prompt grouping', () => {
       { id: 'e', name: 'OtherSource', content: 'e', usedAt: 1800, source: 'codex', project: 'PromptDock', sessionId: 's1' },
     ]);
 
-    const group = new ProjectGroupItem('claude-code', 'PromptDock', 0);
+    const group = new ProjectGroupItem('claude-code', 'PromptDock', 0, 0);
     const sessions = provider.getChildren(group) as SessionGroupItem[];
 
     assert.deepStrictEqual(

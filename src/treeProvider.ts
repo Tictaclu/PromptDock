@@ -94,10 +94,11 @@ export class ProjectGroupItem extends vscode.TreeItem {
     readonly source: PromptSource,
     readonly project: string,
     count: number,
+    lastActivity: number,
   ) {
     super(project, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'projectGroup';
-    this.description = `${count}`;
+    this.description = `${count} · ${new Date(lastActivity).toLocaleDateString()}`;
     this.iconPath = new vscode.ThemeIcon('folder');
   }
 }
@@ -114,7 +115,10 @@ export class SessionGroupItem extends vscode.TreeItem {
   ) {
     super(title, vscode.TreeItemCollapsibleState.Collapsed);
     this.contextValue = 'sessionGroup';
-    this.description = `${count} · ${new Date(lastActivity).toLocaleString()}`;
+    this.description = `${count} · ${new Date(lastActivity).toLocaleDateString()}`;
+    this.tooltip = new vscode.MarkdownString(
+      `**${title}**\n\n${count} prompts · Last active: ${new Date(lastActivity).toLocaleString()}`,
+    );
     this.iconPath = new vscode.ThemeIcon('comment-discussion');
   }
 }
@@ -211,7 +215,7 @@ export class PromptDockTreeProvider implements vscode.TreeDataProvider<TreeNode>
         .sort((a, b) => (lastActivityByProject.get(b) ?? 0) - (lastActivityByProject.get(a) ?? 0))
         .map(
           (project) =>
-            new ProjectGroupItem(element.source, project, prompts.filter((p) => p.project === project).length),
+            new ProjectGroupItem(element.source, project, prompts.filter((p) => p.project === project).length, lastActivityByProject.get(project) ?? 0),
         );
     }
 
