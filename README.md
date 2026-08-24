@@ -1,5 +1,3 @@
-English | [简体中文](README.zh-CN.md)
-
 # PromptDock
 
 **AI Prompt Management for VS Code**
