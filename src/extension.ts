@@ -14,14 +14,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const outputChannel = vscode.window.createOutputChannel('PromptDock');
   context.subscriptions.push(outputChannel);
 
-  const webviewProvider = new PromptDockWebviewProvider(context.extensionUri, storage);
+  const doSync = () => syncExternalPrompts(context, storage, outputChannel);
+  const webviewProvider = new PromptDockWebviewProvider(context.extensionUri, storage, doSync);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('promptdock.view', webviewProvider));
 
   registerCommands(context, storage, treeProvider, outputChannel);
   registerSearchCommand(context, storage);
 
   void storage.ensureDefaultFolders();
-  void syncExternalPrompts(context, storage, outputChannel);
 }
 
 export function deactivate(): void {}

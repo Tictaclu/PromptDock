@@ -747,6 +747,7 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly storage: Storage,
+    private readonly onSync?: () => Promise<number>,
   ) {
     storage.onDidChange(() => this.postState());
   }
@@ -773,8 +774,8 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
         return;
       }
       if (message?.type === 'sync') {
-        this.postState();
-        vscode.window.setStatusBarMessage('PromptDock: Prompts synced', 2000);
+        vscode.window.setStatusBarMessage('PromptDock: Syncing prompts…', 2000);
+        void this.onSync?.();
         return;
       }
       if (message?.type === 'deleteTemplate') {
