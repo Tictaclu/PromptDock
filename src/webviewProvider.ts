@@ -936,26 +936,15 @@ function renderPanelHtml(cspSource: string): string {
     transition: border-color 0.1s ease;
   }
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
-  .prompt-name {
+  .prompt-content {
     font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    cursor: pointer;
-    word-break: break-word;
-  }
-  .prompt-name:hover { color: var(--vscode-textLink-foreground); }
-  .prompt-preview {
-    font-size: 12px;
-    opacity: 0.6;
     line-height: 1.55;
     margin-bottom: 10px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
     white-space: pre-wrap;
     word-break: break-word;
+    cursor: pointer;
   }
+  .prompt-content:hover { color: var(--vscode-textLink-foreground); }
   .prompt-footer {
     display: flex;
     align-items: center;
@@ -1008,13 +997,10 @@ function renderPanelHtml(cspSource: string): string {
     function renderPromptCard(row) {
       const card = el('div', 'prompt-card');
 
-      const name = el('div', 'prompt-name', row.name);
-      name.title = 'Click to copy & insert at cursor';
-      name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
-      card.appendChild(name);
-
-      const preview = el('div', 'prompt-preview', row.content);
-      card.appendChild(preview);
+      const content = el('div', 'prompt-content', row.content);
+      content.title = 'Click to copy & insert at cursor';
+      content.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
+      card.appendChild(content);
 
       const footer = el('div', 'prompt-footer');
       footer.appendChild(el('div', 'prompt-meta', row.meta || ''));
