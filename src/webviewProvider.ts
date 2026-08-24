@@ -288,7 +288,24 @@ function renderHtml(cspSource: string): string {
   .card.collapsed .toggle { transform: rotate(-90deg); }
   .card-body { padding: 8px; }
   .card.collapsed .card-body { display: none; }
-  .toolbar { display: flex; align-items: center; gap: 6px; padding: 0 2px 8px; }
+  .toolbar-container { display: flex; flex-direction: column; gap: 6px; padding: 0 2px 8px; }
+  .sync-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    width: 100%;
+  }
+  .sync-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
+  .sync-btn .sync-icon { font-size: 14px; line-height: 1; }
+  .toolbar { display: flex; align-items: center; gap: 6px; }
   .search {
     flex: 1;
     display: flex;
@@ -523,6 +540,14 @@ function renderHtml(cspSource: string): string {
     }
 
     function renderToolbar(sectionKey, currentQuery) {
+      const container = el('div', 'toolbar-container');
+
+      const syncBtn = el('button', 'sync-btn');
+      syncBtn.appendChild(el('span', 'sync-icon', '↻'));
+      syncBtn.appendChild(el('span', '', 'Sync Prompts'));
+      syncBtn.addEventListener('click', () => vscode.postMessage({ type: 'sync', section: sectionKey }));
+      container.appendChild(syncBtn);
+
       const bar = el('div', 'toolbar');
       const search = el('div', 'search');
       search.appendChild(el('span', '', '🔍'));
@@ -538,7 +563,9 @@ function renderHtml(cspSource: string): string {
       const newWindowBtn = el('button', 'new-window-btn', '+ New Session');
       newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
       bar.appendChild(newWindowBtn);
-      return bar;
+      container.appendChild(bar);
+
+      return container;
     }
 
     const queries = {};
@@ -625,6 +652,11 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'newWindow') {
         openSectionPanel(this.extensionUri, this.storage, message.section);
+        return;
+      }
+      if (message?.type === 'sync') {
+        this.postState();
+        vscode.window.setStatusBarMessage('PromptDock: Prompts synced', 2000);
       }
     });
   }
