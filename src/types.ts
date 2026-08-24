@@ -17,8 +17,8 @@ export interface TemplateFolder {
 export type PromptSource = 'claude-code' | 'copilot-chat' | 'codex';
 
 export const SOURCE_LABELS: Record<PromptSource, string> = {
-  'claude-code': 'Claude Code',
-  'copilot-chat': 'Copilot Chat',
+  'claude-code': 'Claude',
+  'copilot-chat': 'Copilot',
   codex: 'Codex',
 };
 
