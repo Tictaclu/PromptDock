@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { Storage } from './storage';
 import { BUILTIN_PRESETS, PRESET_CATEGORY_TO_FOLDER } from './presets';
 import { ImportedPrompt, PromptSource, SOURCE_LABELS } from './types';
+import { showPromptDetailPanel } from './searchPanel';
+import { SearchResult } from './search';
 
 const SOURCE_ORDER: PromptSource[] = ['claude-code', 'copilot-chat', 'codex'];
 const SOURCE_ICONS: Record<PromptSource, string> = { 'claude-code': '🟠', 'copilot-chat': '🔵', codex: '🟢' };
@@ -449,13 +451,19 @@ function renderHtml(cspSource: string): string {
 
     function renderRow(row) {
       const isTemplate = row.id && row.id.startsWith('template:');
+      const isImported = row.id && row.id.startsWith('imported:');
       const r = el('div', 'row');
 
       // Normal view
       const normal = el('div', 'row-normal');
       const name = el('div', 'row-name', row.name);
       name.title = row.content;
-      name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
+      if (isImported) {
+        name.title = 'Click to view full prompt';
+        name.addEventListener('click', () => vscode.postMessage({ type: 'openDetail', id: row.id }));
+      } else {
+        name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
+      }
       normal.appendChild(name);
       if (row.meta) normal.appendChild(el('div', 'row-meta', row.meta));
 
@@ -797,6 +805,22 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'moveTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
         await this.storage.updateTemplate(rawId, { folderId: message.targetFolderId as string });
+        return;
+      }
+      if (message?.type === 'openDetail') {
+        const rawId = (message.id as string).slice('imported:'.length);
+        const prompt = this.storage.getImportedPrompts().find((p) => p.id === rawId);
+        if (prompt) {
+          const result: SearchResult = {
+            kind: 'imported',
+            id: rawId,
+            name: prompt.name,
+            content: prompt.content,
+            meta: `${SOURCE_LABELS[prompt.source]} · ${prompt.project}`,
+            icon: new vscode.ThemeIcon('comment-discussion'),
+          };
+          showPromptDetailPanel(this.storage, result);
+        }
         return;
       }
       if (message?.type === 'createFolder') {
