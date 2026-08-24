@@ -412,6 +412,9 @@ function renderHtml(cspSource: string): string {
   }
   .cancel-btn:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
   .empty { opacity: 0.5; font-size: 12px; padding: 6px 8px; }
+  .row[draggable="true"] { cursor: grab; }
+  .row.dragging { opacity: 0.35; }
+  .group-header.drag-over { background: var(--vscode-list-dropBackground, var(--vscode-list-hoverBackground)); outline: 2px dashed var(--vscode-focusBorder); border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -470,6 +473,14 @@ function renderHtml(cspSource: string): string {
         delBtn.title = 'Move to Deleted folder';
         delBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'deleteTemplate', id: row.id }); });
         actions.appendChild(delBtn);
+
+        r.setAttribute('draggable', 'true');
+        r.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', row.id);
+          e.dataTransfer.effectAllowed = 'move';
+          setTimeout(() => r.classList.add('dragging'), 0);
+        });
+        r.addEventListener('dragend', () => r.classList.remove('dragging'));
       }
 
       normal.appendChild(actions);
@@ -584,10 +595,15 @@ function renderHtml(cspSource: string): string {
         const filteredTemplates = folder.templates.filter((r) => matches(r.name, query) || matches(r.content, query));
         if (query && filteredPresets.length === 0 && filteredTemplates.length === 0) continue;
         any = true;
-        body.appendChild(renderGroup('folder:' + folder.id, '📁 ' + folder.name, allRows.length, (c) => {
+        const groupEl = renderGroup('folder:' + folder.id, '📁 ' + folder.name, allRows.length, (c) => {
           for (const r of filteredPresets) c.appendChild(renderRow(r));
           for (const r of filteredTemplates) c.appendChild(renderRow(r));
-        }));
+        });
+        const gh = groupEl.querySelector('.group-header');
+        gh.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; gh.classList.add('drag-over'); });
+        gh.addEventListener('dragleave', (e) => { if (!gh.contains(e.relatedTarget)) gh.classList.remove('drag-over'); });
+        gh.addEventListener('drop', (e) => { e.preventDefault(); gh.classList.remove('drag-over'); const id = e.dataTransfer.getData('text/plain'); if (id && id.startsWith('template:')) vscode.postMessage({ type: 'moveTemplate', id, targetFolderId: folder.id }); });
+        body.appendChild(groupEl);
       }
       const filteredUnfiled = state.templates.unfiled.filter((r) => matches(r.name, query) || matches(r.content, query));
       for (const r of filteredUnfiled) { body.appendChild(renderRow(r)); any = true; }
@@ -765,6 +781,11 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'updateTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
         await this.storage.updateTemplate(rawId, { name: message.name, content: message.content });
+        return;
+      }
+      if (message?.type === 'moveTemplate') {
+        const rawId = (message.id as string).slice('template:'.length);
+        await this.storage.updateTemplate(rawId, { folderId: message.targetFolderId as string });
         return;
       }
     });
