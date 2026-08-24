@@ -884,6 +884,21 @@ function renderPanelHtml(cspSource: string): string {
     font-family: inherit;
     font-size: 13px;
   }
+  .search-bar-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 6px;
+    color: inherit;
+    opacity: 0.6;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-family: inherit;
+  }
+  .search-bar-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); border-color: var(--vscode-widget-border, transparent); }
   .folder-section { margin-bottom: 20px; }
   .folder-title {
     display: flex;
@@ -1185,6 +1200,19 @@ function renderPanelHtml(cspSource: string): string {
       input.value = query;
       input.addEventListener('input', () => { query = input.value; render(); });
       searchBar.appendChild(input);
+      const expandAllBtn = el('button', 'search-bar-btn', 'Expand All');
+      expandAllBtn.title = 'Expand all folders';
+      expandAllBtn.addEventListener('click', () => {
+        if (sectionKey === 'templates') {
+          for (const folder of state.templates.folders) expandedSections.add('folder:' + folder.id);
+          if (state.templates.unfiled.length > 0) expandedSections.add('unfiled');
+        } else {
+          const source = state.sources.find((s) => s.source === sectionKey);
+          if (source) for (const project of source.projects) expandedSections.add('project:' + project.name);
+        }
+        render();
+      });
+      searchBar.appendChild(expandAllBtn);
       app.appendChild(searchBar);
 
       if (sectionKey === 'templates') {
