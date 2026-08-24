@@ -778,11 +778,14 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'deleteTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
-        let deletedFolder = this.storage.getFolders().find((f) => f.name === 'Deleted');
-        if (!deletedFolder) {
-          deletedFolder = await this.storage.createFolder('Deleted');
+        const template = this.storage.getTemplates().find((t) => t.id === rawId);
+        const deletedFolder = this.storage.getFolders().find((f) => f.name === 'Deleted');
+        if (template && deletedFolder && template.folderId === deletedFolder.id) {
+          await this.storage.deleteTemplate(rawId);
+        } else {
+          const folder = deletedFolder ?? await this.storage.createFolder('Deleted');
+          await this.storage.updateTemplate(rawId, { folderId: folder.id });
         }
-        await this.storage.updateTemplate(rawId, { folderId: deletedFolder.id });
         return;
       }
       if (message?.type === 'updateTemplate') {
