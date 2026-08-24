@@ -86,7 +86,11 @@ export function parseClaudeCodeLine(
   } catch {
     return null;
   }
-  if (obj?.type !== 'user' || obj?.origin?.kind !== 'human' || obj?.message?.role !== 'user' || !obj.uuid) {
+  if (obj?.type !== 'user' || obj?.message?.role !== 'user' || !obj.uuid) {
+    return null;
+  }
+  // origin.kind may be absent in newer Claude Code versions — only reject if explicitly non-human
+  if (obj.origin?.kind && obj.origin.kind !== 'human') {
     return null;
   }
   const content = obj.message.content;
@@ -317,12 +321,23 @@ export async function scanCodexPrompts(
   return results;
 }
 
+function getClaudeCodeRoots(): string[] {
+  const roots = [path.join(os.homedir(), '.claude', 'projects')];
+  if (process.platform === 'win32') {
+    if (process.env.APPDATA) roots.push(path.join(process.env.APPDATA, 'Claude', 'projects'));
+    if (process.env.LOCALAPPDATA) roots.push(path.join(process.env.LOCALAPPDATA, 'Claude', 'projects'));
+  }
+  return roots;
+}
+
 export async function scanClaudeCodePrompts(
   alreadyImported: ReadonlySet<string>,
   cache: FileScanCache,
 ): Promise<ImportedPrompt[]> {
   const results: ImportedPrompt[] = [];
-  const root = path.join(os.homedir(), '.claude', 'projects');
+  const seenIds = new Set<string>();
+
+  for (const root of getClaudeCodeRoots()) {
   const projectDirs = await readDirSafe(root);
 
   for (const projectDir of projectDirs) {
@@ -345,9 +360,10 @@ export async function scanClaudeCodePrompts(
           continue;
         }
         const parsed = parseClaudeCodeLine(line);
-        if (!parsed || alreadyImported.has(parsed.id)) {
+        if (!parsed || alreadyImported.has(parsed.id) || seenIds.has(parsed.id)) {
           continue;
         }
+        seenIds.add(parsed.id);
         results.push({
           id: parsed.id,
           name: toName(parsed.text),
@@ -360,6 +376,7 @@ export async function scanClaudeCodePrompts(
       }
     }
   }
+  } // end getClaudeCodeRoots loop
   return results;
 }
 
