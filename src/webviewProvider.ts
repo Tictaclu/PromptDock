@@ -1131,7 +1131,7 @@ function renderPanelHtml(cspSource: string): string {
         });
       }
 
-      const editBtn = el('button', 'action-btn', '✏');
+      const editBtn = el('button', 'action-btn', 'Edit');
       editBtn.title = 'Edit prompt text';
       editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
 
