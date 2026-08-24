@@ -1049,7 +1049,7 @@ function renderPanelHtml(cspSource: string): string {
       requestAnimationFrame(() => {
         const card = document.querySelector('[data-prompt-id="' + promptId + '"]');
         if (!card) return;
-        card.scrollIntoView({ behavior: 'instant', block: 'nearest' });
+        card.scrollIntoView({ behavior: 'instant', block: 'start' });
         card.classList.add('highlight');
       });
     }
