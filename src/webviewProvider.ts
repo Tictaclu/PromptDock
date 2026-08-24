@@ -458,12 +458,8 @@ function renderHtml(cspSource: string): string {
       const normal = el('div', 'row-normal');
       const name = el('div', 'row-name', row.name);
       name.title = row.content;
-      if (isImported) {
-        name.title = 'Click to view full prompt';
-        name.addEventListener('click', () => vscode.postMessage({ type: 'openDetail', id: row.id }));
-      } else {
-        name.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default' }));
-      }
+      name.title = 'Click to open in New Session';
+      name.addEventListener('click', () => vscode.postMessage({ type: 'openDetail', id: row.id }));
       normal.appendChild(name);
       if (row.meta) normal.appendChild(el('div', 'row-meta', row.meta));
 
@@ -808,9 +804,13 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
         return;
       }
       if (message?.type === 'openDetail') {
-        const rawId = (message.id as string).slice('imported:'.length);
-        const source = rawId.split(':')[0] as PromptSource;
-        openSectionPanel(this.extensionUri, this.storage, source, message.id as string);
+        const id = message.id as string;
+        if (id.startsWith('imported:')) {
+          const source = id.slice('imported:'.length).split(':')[0] as PromptSource;
+          openSectionPanel(this.extensionUri, this.storage, source, id);
+        } else {
+          openSectionPanel(this.extensionUri, this.storage, 'templates', id);
+        }
         return;
       }
       if (message?.type === 'createFolder') {
