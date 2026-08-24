@@ -1083,10 +1083,7 @@ function renderPanelHtml(cspSource: string): string {
           content.textContent = newContent;
         }
         card.classList.remove('card-editing');
-        copiedPromptIds.delete(row.id);
         addedPromptIds.delete(row.id);
-        copyBtn.disabled = false; copyBtn.className = 'action-btn'; copyBtn.title = 'Copy prompt to clipboard';
-        copyBtn.querySelector('.btn-icon').textContent = '⎘'; copyBtn.querySelector('span:last-child').textContent = 'Copy';
         insertBtn.disabled = false; insertBtn.className = 'action-btn'; insertBtn.title = 'Save this prompt to My Templates';
         insertBtn.querySelector('.btn-icon').textContent = '+'; insertBtn.querySelector('span:last-child').textContent = 'Add';
       });
@@ -1112,21 +1109,11 @@ function renderPanelHtml(cspSource: string): string {
         return b;
       }
 
-      const isCopied = copiedPromptIds.has(row.id);
-      const copyBtn = makeBtn(isCopied ? 'action-btn done' : 'action-btn', isCopied ? '✓' : '⎘', isCopied ? '' : 'Copy');
-      copyBtn.title = isCopied ? 'Copied' : 'Copy prompt to clipboard';
-      copyBtn.disabled = isCopied;
-      if (!isCopied) {
-        copyBtn.addEventListener('click', () => {
-          copiedPromptIds.add(row.id);
-          vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
-          copyBtn.disabled = true;
-          copyBtn.querySelector('.btn-icon').textContent = '✓';
-          copyBtn.querySelector('span:last-child').textContent = '';
-          copyBtn.className = 'action-btn done';
-          copyBtn.title = 'Copied';
-        });
-      }
+      const copyBtn = makeBtn('action-btn', '⎘', 'Copy');
+      copyBtn.title = 'Copy prompt to clipboard';
+      copyBtn.addEventListener('click', () => {
+        vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
+      });
 
       const isAdded = addedPromptIds.has(row.id);
       const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '+', isAdded ? '' : 'Add');
@@ -1198,7 +1185,6 @@ function renderPanelHtml(cspSource: string): string {
     }
 
     const addedPromptIds = new Set();
-    const copiedPromptIds = new Set();
     const expandedSections = new Set();
 
     function render() {
