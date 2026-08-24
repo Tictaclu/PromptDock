@@ -949,7 +949,7 @@ function renderPanelHtml(cspSource: string): string {
     transition: border-color 0.1s ease;
   }
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
-  .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); transition: box-shadow 0.15s ease; }
+  .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); }
   .prompt-content {
     font-size: 13px;
     line-height: 1.55;
@@ -1053,7 +1053,7 @@ function renderPanelHtml(cspSource: string): string {
       requestAnimationFrame(() => {
         const card = document.querySelector('[data-prompt-id="' + promptId + '"]');
         if (!card) return;
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.scrollIntoView({ behavior: 'instant', block: 'nearest' });
         card.classList.add('highlight');
         setTimeout(() => card.classList.remove('highlight'), 2000);
       });
