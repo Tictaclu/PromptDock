@@ -328,14 +328,16 @@ function renderHtml(cspSource: string): string {
   }
   .new-window-btn {
     background: transparent;
-    border: none;
-    color: var(--vscode-textLink-foreground);
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    color: var(--vscode-foreground);
     cursor: pointer;
-    font-size: 12px;
-    padding: 4px 6px;
-    white-space: nowrap;
+    font-size: 15px;
+    line-height: 1;
+    padding: 3px 7px;
+    opacity: 0.7;
   }
-  .new-window-btn:hover { text-decoration: underline; }
+  .new-window-btn:hover { opacity: 1; background: var(--vscode-list-hoverBackground); }
   .group { margin-bottom: 2px; }
   .group-header {
     display: flex;
@@ -669,12 +671,12 @@ function renderHtml(cspSource: string): string {
       input.addEventListener('input', () => { queries[sectionKey] = input.value; rerenderCard(sectionKey); });
       search.appendChild(input);
       bar.appendChild(search);
-      const newWindowBtn = el('button', 'new-window-btn', '+ New Session');
+      const newWindowBtn = el('button', 'new-window-btn', '⧉');
       newWindowBtn.title = 'Open this section in a detached editor panel';
       newWindowBtn.addEventListener('click', () => vscode.postMessage({ type: 'newWindow', section: sectionKey }));
       bar.appendChild(newWindowBtn);
       if (sectionKey === 'templates') {
-        const newFolderBtn = el('button', 'new-window-btn', '+ New Folder');
+        const newFolderBtn = el('button', 'new-window-btn', '📁');
         newFolderBtn.title = 'Create a new folder in My Templates';
         newFolderBtn.addEventListener('click', () => vscode.postMessage({ type: 'createFolder' }));
         bar.appendChild(newFolderBtn);
