@@ -34,6 +34,8 @@ export interface ImportedPrompt {
   id: string;
   name: string;
   content: string;
+  /** The AI's reply that immediately followed this prompt, if it could be captured during sync. */
+  response?: string;
   usedAt: number;
   source: PromptSource;
   /** Display name of the originating project/workspace folder, or "Unknown" if it couldn't be determined. */

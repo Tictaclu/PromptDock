@@ -55,6 +55,7 @@ interface PromptRow {
   id: string;
   name: string;
   content: string;
+  response?: string;
   meta?: string;
 }
 
@@ -158,6 +159,7 @@ export function buildState(storage: Storage): WebviewState {
                   id: `imported:${p.id}`,
                   name: p.name,
                   content: p.content,
+                  response: p.response,
                   meta: new Date(p.usedAt).toLocaleString(),
                 })),
             };
@@ -1016,6 +1018,26 @@ function renderPanelHtml(cspSource: string): string {
     resize: vertical;
     width: 100%;
   }
+  .prompt-response {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  }
+  .response-label {
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .response-content {
+    font-size: 12px;
+    line-height: 1.6;
+    opacity: 0.85;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
   .card-edit-actions { display: flex; gap: 6px; justify-content: flex-end; }
   .card-edit-save, .card-edit-cancel {
     background: transparent;
@@ -1079,6 +1101,13 @@ function renderPanelHtml(cspSource: string): string {
       content.addEventListener('click', () => vscode.postMessage({ type: 'use', id: row.id, action: 'default', content: card.dataset.content }));
       card.appendChild(content);
 
+      if (row.response) {
+        const responseSection = el('div', 'prompt-response');
+        responseSection.appendChild(el('div', 'response-label', '🤖 AI Response'));
+        responseSection.appendChild(el('div', 'response-content', row.response));
+        card.appendChild(responseSection);
+      }
+
       // Inline edit form
       const editForm = el('div', 'card-edit-form');
       const editArea = document.createElement('textarea');
@@ -1127,7 +1156,7 @@ function renderPanelHtml(cspSource: string): string {
       const alreadyTemplate = row.id.startsWith('template:') || row.id.startsWith('preset:');
       if (!alreadyTemplate) {
         const isAdded = addedPromptIds.has(row.id);
-        const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '+', isAdded ? '' : 'Add');
+        const insertBtn = makeBtn(isAdded ? 'action-btn done' : 'action-btn', isAdded ? '✓' : '♥', isAdded ? '' : 'Add');
         insertBtn.title = isAdded ? 'Already added to My Templates' : 'Save this prompt to My Templates';
         insertBtn.disabled = isAdded;
         if (!isAdded) {

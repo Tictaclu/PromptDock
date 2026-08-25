@@ -76,10 +76,35 @@ async function readDirSafe(dirPath: string): Promise<string[]> {
   }
 }
 
+function extractTextFromContent(content: unknown): string {
+  if (Array.isArray(content)) {
+    return content
+      .filter((c: any) => c?.type === 'text' && typeof c.text === 'string')
+      .map((c: any) => c.text as string)
+      .join('\n')
+      .trim();
+  }
+  if (typeof content === 'string') {
+    return content.trim();
+  }
+  return '';
+}
+
+/** Parses an assistant reply line from a Claude Code transcript, keyed by the user message uuid it answers. */
+export function parseClaudeCodeAssistantLine(line: string): { parentUuid: string; text: string } | null {
+  let obj: any;
+  try { obj = JSON.parse(line); } catch { return null; }
+  if (obj?.type !== 'assistant' || obj?.message?.role !== 'assistant' || !obj.parentUuid) {
+    return null;
+  }
+  const text = extractTextFromContent(obj.message.content);
+  return text ? { parentUuid: String(obj.parentUuid), text } : null;
+}
+
 /** Parses one line of a Claude Code session transcript (~/.claude/projects/*\/*.jsonl). */
 export function parseClaudeCodeLine(
   line: string,
-): { id: string; text: string; timestamp: number; cwd?: string; sessionId: string } | null {
+): { id: string; uuid: string; text: string; timestamp: number; cwd?: string; sessionId: string } | null {
   let obj: any;
   try {
     obj = JSON.parse(line);
@@ -112,11 +137,34 @@ export function parseClaudeCodeLine(
   const sessionId: string = obj.sessionId ?? 'unknown';
   return {
     id: `claude-code:${sessionId}:${obj.uuid}`,
+    uuid: String(obj.uuid),
     text,
     timestamp,
     cwd: typeof obj.cwd === 'string' ? obj.cwd : undefined,
     sessionId,
   };
+}
+
+/** Best-effort extraction of the AI response from a VS Code Copilot chat request object. */
+export function extractCopilotResponseText(request: any): string | null {
+  if (!request) return null;
+  const candidates = [
+    request.response?.message,
+    request.response?.text,
+    request.result?.value,
+    request.reply,
+  ];
+  for (const c of candidates) {
+    if (typeof c === 'string' && c.trim()) return c.trim();
+  }
+  if (Array.isArray(request.response?.parts)) {
+    const text = request.response.parts
+      .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
+      .join('')
+      .trim();
+    if (text) return text;
+  }
+  return null;
 }
 
 /**
@@ -219,6 +267,23 @@ export function extractCodexUserText(obj: any): string | null {
   return null;
 }
 
+/** Best-effort extraction of an assistant reply from a Codex JSONL line. */
+export function extractCodexAssistantText(obj: any): string | null {
+  if (!obj || typeof obj !== 'object') return null;
+  const fromBlocks = (content: unknown): string | null => {
+    if (!Array.isArray(content)) return null;
+    const text = content.filter((c: any) => typeof c?.text === 'string').map((c: any) => c.text).join('\n').trim();
+    return text || null;
+  };
+  if (obj.type === 'response_item' && obj.payload?.type === 'message' && obj.payload?.role === 'assistant') {
+    return fromBlocks(obj.payload.content);
+  }
+  if (obj.type === 'message' && obj.role === 'assistant') {
+    return fromBlocks(obj.content) ?? (typeof obj.content === 'string' ? obj.content.trim() || null : null);
+  }
+  return null;
+}
+
 export function parseCodexLine(line: string): { text: string; timestamp: number } | null {
   let obj: any;
   try {
@@ -288,29 +353,39 @@ export async function scanCodexPrompts(
     for (const line of lines) {
       try {
         const found = extractCodexCwd(JSON.parse(line));
-        if (found) {
-          cwd = found;
-          break;
-        }
+        if (found) { cwd = found; break; }
       } catch {
         // ignore malformed lines during the cwd pre-scan
       }
     }
     const project = folderName(cwd);
 
+    // Build map: line index → next assistant reply (first assistant message after each user message)
+    const parsedObjs = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } });
+    const indexToResponse = new Map<number, string>();
+    let lastUserIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (parseCodexLine(lines[i])) {
+        lastUserIndex = i;
+      } else if (lastUserIndex >= 0 && !indexToResponse.has(lastUserIndex)) {
+        const assistantText = extractCodexAssistantText(parsedObjs[i]);
+        if (assistantText) {
+          indexToResponse.set(lastUserIndex, assistantText);
+          lastUserIndex = -1;
+        }
+      }
+    }
+
     lines.forEach((line, index) => {
       const parsed = parseCodexLine(line);
-      if (!parsed) {
-        return;
-      }
+      if (!parsed) return;
       const id = `codex:${filePath}:${index}`;
-      if (alreadyImported.has(id)) {
-        return;
-      }
+      if (alreadyImported.has(id)) return;
       results.push({
         id,
         name: toName(parsed.text),
         content: parsed.text,
+        response: indexToResponse.get(index),
         usedAt: parsed.timestamp,
         source: 'codex',
         project,
@@ -355,19 +430,27 @@ export async function scanClaudeCodePrompts(
       if (!content) {
         continue;
       }
-      for (const line of content.split('\n')) {
-        if (!line.trim()) {
-          continue;
-        }
+      const lines = content.split('\n');
+
+      // First pass: build parentUuid → assistant reply map
+      const responses = new Map<string, string>();
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        const assistant = parseClaudeCodeAssistantLine(line);
+        if (assistant) responses.set(assistant.parentUuid, assistant.text);
+      }
+
+      // Second pass: emit user messages with their paired response
+      for (const line of lines) {
+        if (!line.trim()) continue;
         const parsed = parseClaudeCodeLine(line);
-        if (!parsed || alreadyImported.has(parsed.id) || seenIds.has(parsed.id)) {
-          continue;
-        }
+        if (!parsed || alreadyImported.has(parsed.id) || seenIds.has(parsed.id)) continue;
         seenIds.add(parsed.id);
         results.push({
           id: parsed.id,
           name: toName(parsed.text),
           content: parsed.text,
+          response: responses.get(parsed.uuid),
           usedAt: parsed.timestamp,
           source: 'claude-code',
           project: folderName(parsed.cwd),
@@ -428,7 +511,8 @@ export async function scanCopilotChatPrompts(
           return;
         }
         const timestamp = typeof request.timestamp === 'number' ? request.timestamp : fallbackTimestamp;
-        results.push({ id, name: toName(text), content: text, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
+        const response = extractCopilotResponseText(request) ?? undefined;
+        results.push({ id, name: toName(text), content: text, response, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
       });
     }
   }
