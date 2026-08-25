@@ -31,7 +31,7 @@
         {
           "id": "promptdock",
           "title": "PromptDock",
-          "icon": "resources/activity-icon.svg"
+          "icon": "resources/activity-icon.png"
         }
       ]
     },
@@ -41,7 +41,7 @@
           "type": "webview",
           "id": "promptdock.view",
           "name": "Prompts",
-          "icon": "resources/activity-icon.svg"
+          "icon": "resources/activity-icon.png"
         }
       ]
     },
