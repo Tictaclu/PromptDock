@@ -50,6 +50,19 @@ suite('buildState', () => {
     assert.strictEqual(codex.count, 0);
     assert.deepStrictEqual(codex.projects, []);
   });
+
+  test('excludes dismissed presets from their folder, but keeps other presets in that folder', async () => {
+    const storage = makeStorage();
+    const folder = await storage.createFolder('Testing');
+    await storage.dismissPreset('preset.test.unit-tests');
+
+    const state = buildState(storage);
+
+    const folderData = state.templates.folders.find((f) => f.name === folder.name)!;
+    const presetNames = folderData.presets.map((p) => p.name);
+    assert.ok(!presetNames.includes('Generate Unit Tests'));
+    assert.ok(presetNames.includes('Identify Edge Cases'));
+  });
 });
 
 suite('findRow', () => {

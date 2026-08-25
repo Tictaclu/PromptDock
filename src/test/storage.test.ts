@@ -116,6 +116,49 @@ suite('Storage', () => {
 
   });
 
+  suite('dismissed presets', () => {
+    test('dismissPreset hides a preset id, restoreDismissedPresets brings it back', async () => {
+      const storage = makeStorage();
+      assert.deepStrictEqual(storage.getDismissedPresetIds(), new Set());
+
+      await storage.dismissPreset('preset.debug.explain-error');
+      assert.deepStrictEqual(storage.getDismissedPresetIds(), new Set(['preset.debug.explain-error']));
+
+      await storage.restoreDismissedPresets(['preset.debug.explain-error']);
+      assert.deepStrictEqual(storage.getDismissedPresetIds(), new Set());
+    });
+
+    test('dismissPreset is idempotent for an already-dismissed id', async () => {
+      const storage = makeStorage();
+      await storage.dismissPreset('preset.debug.explain-error');
+      await storage.dismissPreset('preset.debug.explain-error');
+
+      assert.deepStrictEqual(storage.getDismissedPresetIds(), new Set(['preset.debug.explain-error']));
+    });
+
+    test('restoreDismissedPresets only restores ids that were actually dismissed', async () => {
+      const storage = makeStorage();
+      await storage.dismissPreset('preset.a');
+      await storage.dismissPreset('preset.b');
+
+      await storage.restoreDismissedPresets(['preset.a', 'preset.never-dismissed']);
+
+      assert.deepStrictEqual(storage.getDismissedPresetIds(), new Set(['preset.b']));
+    });
+
+    test('onDidChange fires on dismiss and on a restore that changes something', async () => {
+      const storage = makeStorage();
+      let fireCount = 0;
+      storage.onDidChange(() => { fireCount += 1; });
+
+      await storage.dismissPreset('preset.a');
+      await storage.restoreDismissedPresets(['preset.a']);
+      await storage.restoreDismissedPresets(['preset.a']); // no-op, nothing left to restore
+
+      assert.strictEqual(fireCount, 2);
+    });
+  });
+
   suite('onDidChange', () => {
     test('fires after mutating operations', async () => {
       const storage = makeStorage();

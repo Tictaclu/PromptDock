@@ -203,6 +203,24 @@ export function registerCommands(
     }
     vscode.window.showInformationMessage(`Imported ${toImport.length} preset prompt(s).`);
   });
+
+  register('promptdock.restoreHiddenPresets', async () => {
+    const dismissedIds = storage.getDismissedPresetIds();
+    if (dismissedIds.size === 0) {
+      vscode.window.showInformationMessage('No hidden presets to restore.');
+      return;
+    }
+    const hidden = BUILTIN_PRESETS.filter((p) => dismissedIds.has(p.id));
+    const picked = await vscode.window.showQuickPick(
+      hidden.map((p) => ({ label: p.name, description: p.category, id: p.id })),
+      { canPickMany: true, placeHolder: 'Select hidden presets to restore' },
+    );
+    if (!picked || picked.length === 0) {
+      return;
+    }
+    await storage.restoreDismissedPresets(picked.map((p) => p.id));
+    vscode.window.showInformationMessage(`Restored ${picked.length} preset(s).`);
+  });
 }
 
 async function useNode(

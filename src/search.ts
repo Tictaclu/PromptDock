@@ -28,7 +28,8 @@ function collectSearchablePrompts(storage: Storage): SearchResult[] {
     icon: new vscode.ThemeIcon('symbol-text'),
   }));
 
-  const presets: SearchResult[] = BUILTIN_PRESETS.map((p) => ({
+  const dismissedPresetIds = storage.getDismissedPresetIds();
+  const presets: SearchResult[] = BUILTIN_PRESETS.filter((p) => !dismissedPresetIds.has(p.id)).map((p) => ({
     kind: 'preset',
     id: p.id,
     name: p.name,

@@ -7,6 +7,7 @@ const FOLDERS_SEEDED_KEY = 'promptdock.foldersSeeded';
 const IMPORTED_EXTERNAL_IDS_KEY = 'promptdock.importedExternalIds';
 const IMPORTED_PROMPTS_KEY = 'promptdock.importedPrompts';
 const FILE_SCAN_STATS_KEY = 'promptdock.fileScanStats';
+const DISMISSED_PRESET_IDS_KEY = 'promptdock.dismissedPresetIds';
 
 export interface FileStat {
   mtimeMs: number;
@@ -181,5 +182,36 @@ export class Storage {
 
   async setFileScanStats(stats: Record<string, FileStat>): Promise<void> {
     await this.memento.update(FILE_SCAN_STATS_KEY, stats);
+  }
+
+  // ---- Dismissed presets ----
+  // Presets are read-only, built into the extension — "deleting" one just hides it per-user
+  // rather than removing the definition, and can be undone via restoreDismissedPresets.
+
+  getDismissedPresetIds(): Set<string> {
+    return new Set(this.memento.get<string[]>(DISMISSED_PRESET_IDS_KEY, []));
+  }
+
+  async dismissPreset(presetId: string): Promise<void> {
+    const dismissed = this.getDismissedPresetIds();
+    if (dismissed.has(presetId)) {
+      return;
+    }
+    dismissed.add(presetId);
+    await this.memento.update(DISMISSED_PRESET_IDS_KEY, Array.from(dismissed));
+    this.fireChange();
+  }
+
+  async restoreDismissedPresets(presetIds: string[]): Promise<void> {
+    const dismissed = this.getDismissedPresetIds();
+    let changed = false;
+    for (const id of presetIds) {
+      changed = dismissed.delete(id) || changed;
+    }
+    if (!changed) {
+      return;
+    }
+    await this.memento.update(DISMISSED_PRESET_IDS_KEY, Array.from(dismissed));
+    this.fireChange();
   }
 }

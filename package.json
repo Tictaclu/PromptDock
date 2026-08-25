@@ -132,6 +132,11 @@
         "title": "Import All Presets",
         "icon": "$(cloud-download)",
         "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.restoreHiddenPresets",
+        "title": "Restore Hidden Presets",
+        "category": "PromptDock"
       }
     ],
     "menus": {

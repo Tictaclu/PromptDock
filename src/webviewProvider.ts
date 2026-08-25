@@ -96,11 +96,14 @@ interface WebviewState {
 export function buildState(storage: Storage): WebviewState {
   const templates = storage.getTemplates();
   const folders = [...storage.getFolders()].sort((a, b) => a.createdAt - b.createdAt);
+  const dismissedPresetIds = storage.getDismissedPresetIds();
 
   const folderData: FolderData[] = folders.map((f) => ({
     id: f.id,
     name: f.name,
-    presets: BUILTIN_PRESETS.filter((p) => PRESET_CATEGORY_TO_FOLDER[p.category] === f.name).map((p) => ({
+    presets: BUILTIN_PRESETS.filter(
+      (p) => PRESET_CATEGORY_TO_FOLDER[p.category] === f.name && !dismissedPresetIds.has(p.id),
+    ).map((p) => ({
       id: `preset:${p.id}`,
       name: p.name,
       content: p.content,
@@ -1148,6 +1151,11 @@ function renderPanelHtml(cspSource: string): string {
         delBtn.title = 'Delete this template';
         delBtn.addEventListener('click', () => vscode.postMessage({ type: 'deleteTemplate', id: row.id }));
         actions.appendChild(delBtn);
+      } else if (row.id.startsWith('preset:')) {
+        const delBtn = makeBtn('action-btn action-btn-danger', '🗑', 'Delete');
+        delBtn.title = 'Hide this preset (restore anytime via PromptDock: Restore Hidden Presets)';
+        delBtn.addEventListener('click', () => vscode.postMessage({ type: 'deletePreset', id: row.id }));
+        actions.appendChild(delBtn);
       }
       actions.appendChild(editBtn);
       footer.appendChild(actions);
@@ -1428,6 +1436,12 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     if (message?.type === 'deleteTemplate') {
       const rawId = (message.id as string).replace(/^template:/, '');
       await storage.deleteTemplate(rawId);
+      return;
+    }
+    if (message?.type === 'deletePreset') {
+      const rawId = (message.id as string).replace(/^preset:/, '');
+      await storage.dismissPreset(rawId);
+      vscode.window.setStatusBarMessage('PromptDock: Preset hidden — restore via "PromptDock: Restore Hidden Presets"', 4000);
       return;
     }
     if (message?.type === 'sync') {

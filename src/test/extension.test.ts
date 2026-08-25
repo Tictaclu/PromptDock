@@ -13,6 +13,7 @@ const EXPECTED_COMMANDS = [
   'promptdock.insertPrompt',
   'promptdock.importPreset',
   'promptdock.importAllPresets',
+  'promptdock.restoreHiddenPresets',
 ];
 
 suite('Extension activation', () => {
