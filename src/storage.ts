@@ -25,6 +25,9 @@ const DEFAULT_FOLDER_NAMES = [
   'Agents',
 ];
 
+/** Name of the reserved system folder that soft-deleted templates/presets are moved into. */
+const DELETED_FOLDER_NAME = 'Deleted';
+
 function genId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -119,6 +122,19 @@ export class Storage {
     return folder;
   }
 
+  /**
+   * Returns the reserved "Deleted" folder, creating it if it doesn't exist yet. Idempotent and
+   * self-healing — call it wherever a soft-delete needs somewhere to put things, and on every
+   * activation, so the folder can never simply be missing.
+   */
+  async ensureDeletedFolder(): Promise<TemplateFolder> {
+    const existing = this.getFolders().find((f) => f.name === DELETED_FOLDER_NAME);
+    if (existing) {
+      return existing;
+    }
+    return this.createFolder(DELETED_FOLDER_NAME);
+  }
+
   async renameFolder(id: string, name: string): Promise<void> {
     const folders = this.getFolders();
     const index = folders.findIndex((f) => f.id === id);
@@ -130,8 +146,15 @@ export class Storage {
     this.fireChange();
   }
 
-  /** Deletes a folder; templates inside it become unfiled rather than being deleted. */
+  /**
+   * Deletes a folder; templates inside it become unfiled rather than being deleted. No-op for the
+   * reserved "Deleted" folder — it's a system fixture that soft-deletes rely on always existing.
+   */
   async deleteFolder(id: string): Promise<void> {
+    const folder = this.getFolders().find((f) => f.id === id);
+    if (!folder || folder.name === DELETED_FOLDER_NAME) {
+      return;
+    }
     await this.setFolders(this.getFolders().filter((f) => f.id !== id));
     const templates = this.getTemplates().map((t) =>
       t.folderId === id ? { ...t, folderId: undefined } : t,

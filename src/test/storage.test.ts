@@ -57,6 +57,36 @@ suite('Storage', () => {
     });
   });
 
+  suite('Deleted folder', () => {
+    test('ensureDeletedFolder creates it once and is idempotent on repeat calls', async () => {
+      const storage = makeStorage();
+
+      const first = await storage.ensureDeletedFolder();
+      const second = await storage.ensureDeletedFolder();
+
+      assert.strictEqual(first.id, second.id);
+      assert.strictEqual(storage.getFolders().filter((f) => f.name === 'Deleted').length, 1);
+    });
+
+    test('deleteFolder is a no-op for the Deleted folder', async () => {
+      const storage = makeStorage();
+      const deletedFolder = await storage.ensureDeletedFolder();
+
+      await storage.deleteFolder(deletedFolder.id);
+
+      assert.ok(storage.getFolders().some((f) => f.id === deletedFolder.id));
+    });
+
+    test('deleteFolder still works normally for any other folder', async () => {
+      const storage = makeStorage();
+      const folder = await storage.createFolder('Testing');
+
+      await storage.deleteFolder(folder.id);
+
+      assert.strictEqual(storage.getFolders().length, 0);
+    });
+  });
+
   suite('importExternalPrompts', () => {
     test('appends genuinely new prompts and reports how many were added', async () => {
       const storage = makeStorage();

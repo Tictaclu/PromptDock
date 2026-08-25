@@ -776,12 +776,11 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       if (message?.type === 'deleteTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
         const template = this.storage.getTemplates().find((t) => t.id === rawId);
-        const deletedFolder = this.storage.getFolders().find((f) => f.name === 'Deleted');
-        if (template && deletedFolder && template.folderId === deletedFolder.id) {
+        const deletedFolder = await this.storage.ensureDeletedFolder();
+        if (template && template.folderId === deletedFolder.id) {
           await this.storage.deleteTemplate(rawId);
         } else {
-          const folder = deletedFolder ?? await this.storage.createFolder('Deleted');
-          await this.storage.updateTemplate(rawId, { folderId: folder.id });
+          await this.storage.updateTemplate(rawId, { folderId: deletedFolder.id });
         }
         return;
       }
@@ -1435,13 +1434,24 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
     }
     if (message?.type === 'deleteTemplate') {
       const rawId = (message.id as string).replace(/^template:/, '');
-      await storage.deleteTemplate(rawId);
+      const template = storage.getTemplates().find((t) => t.id === rawId);
+      const deletedFolder = await storage.ensureDeletedFolder();
+      if (template && template.folderId === deletedFolder.id) {
+        await storage.deleteTemplate(rawId);
+      } else {
+        await storage.updateTemplate(rawId, { folderId: deletedFolder.id });
+      }
       return;
     }
     if (message?.type === 'deletePreset') {
       const rawId = (message.id as string).replace(/^preset:/, '');
-      await storage.dismissPreset(rawId);
-      vscode.window.setStatusBarMessage('PromptDock: Preset hidden — restore via "PromptDock: Restore Hidden Presets"', 4000);
+      const preset = BUILTIN_PRESETS.find((p) => p.id === rawId);
+      if (preset) {
+        const deletedFolder = await storage.ensureDeletedFolder();
+        await storage.createTemplate(preset.name, preset.content, deletedFolder.id);
+        await storage.dismissPreset(rawId);
+        vscode.window.setStatusBarMessage(`PromptDock: Moved "${preset.name}" to Deleted`, 3000);
+      }
       return;
     }
     if (message?.type === 'sync') {

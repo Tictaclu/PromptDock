@@ -22,6 +22,7 @@ export function activate(context: vscode.ExtensionContext): void {
   registerSearchCommand(context, storage);
 
   void storage.ensureDefaultFolders();
+  void storage.ensureDeletedFolder();
 }
 
 export function deactivate(): void {}
