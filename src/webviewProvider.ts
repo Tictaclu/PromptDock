@@ -428,10 +428,30 @@ function renderHtml(cspSource: string): string {
   .row[draggable="true"] { cursor: grab; }
   .row.dragging { opacity: 0.35; }
   .group-header.drag-over { background: var(--vscode-list-dropBackground, var(--vscode-list-hoverBackground)); outline: 2px dashed var(--vscode-focusBorder); border-radius: 4px; }
+  .top-actions { display: flex; gap: 6px; margin: 0 4px 12px; }
+  .top-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    border-radius: 4px;
+    padding: 5px 8px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+  }
+  .top-action-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
 </style>
 </head>
 <body>
   <div class="title">Prompt Dock</div>
+  <div class="top-actions">
+    <button class="top-action-btn" id="forceResyncBtn" title="Re-read all history from scratch — recovers prompts missed in previous syncs">↺ Force Full Resync</button>
+  </div>
   <div id="app"></div>
   <script nonce="${scriptNonce}">
     const vscode = acquireVsCodeApi();
@@ -736,6 +756,10 @@ function renderHtml(cspSource: string): string {
       if (msg.type === 'state') { state = msg.state; render(); }
     });
 
+    document.getElementById('forceResyncBtn').addEventListener('click', () => {
+      vscode.postMessage({ type: 'forceResync' });
+    });
+
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>
@@ -819,6 +843,12 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
         if (name?.trim()) {
           await this.storage.createFolder(name.trim());
         }
+        return;
+      }
+      if (message?.type === 'forceResync') {
+        await this.storage.clearFileScanStats();
+        vscode.window.setStatusBarMessage('PromptDock: Re-scanning all history…', 3000);
+        void this.onSync?.();
         return;
       }
     });
