@@ -210,7 +210,7 @@
         },
         {
           "command": "promptdock.syncExternalHistory",
-          "when": "view == promptdock.view && viewItem =~ /^(sourceGroup|projectGroup|sessionGroup)$/",
+          "when": "view == promptdock.view && viewItem == sourceGroup",
           "group": "inline@1"
         }
       ]
