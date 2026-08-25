@@ -268,7 +268,7 @@ function renderHtml(cspSource: string): string {
   .title {
     font-weight: 600;
     letter-spacing: 0.08em;
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     opacity: 0.75;
     margin: 4px 4px 12px;
@@ -290,8 +290,8 @@ function renderHtml(cspSource: string): string {
   }
   .card-header .left { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .card-header .name { font-weight: 600; }
-  .card-header .count { opacity: 0.6; font-size: 12px; }
-  .card-header .toggle { font-size: 16px; line-height: 1; margin-left: 8px; transition: transform 0.15s ease; }
+  .card-header .count { opacity: 0.6; font-size: 11px; }
+  .card-header .toggle { font-size: 14px; line-height: 1; margin-left: 8px; transition: transform 0.15s ease; }
   .card-sync-btn { background: transparent; border: 1px solid var(--vscode-widget-border, transparent); border-radius: 4px; color: var(--vscode-foreground); cursor: pointer; font-family: inherit; font-size: 11px; opacity: 0.7; padding: 2px 8px; white-space: nowrap; }
   .card-sync-btn:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
   .card.collapsed .toggle { transform: rotate(-90deg); }
@@ -309,11 +309,11 @@ function renderHtml(cspSource: string): string {
     padding: 5px 10px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
     width: 100%;
   }
   .sync-btn:hover { background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground)); }
-  .sync-btn .sync-icon { font-size: 14px; line-height: 1; }
+  .sync-btn .sync-icon { font-size: 12px; line-height: 1; }
   .toolbar { display: flex; align-items: center; gap: 6px; }
   .search {
     flex: 1;
@@ -342,7 +342,7 @@ function renderHtml(cspSource: string): string {
     color: var(--vscode-foreground);
     cursor: pointer;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1;
     padding: 4px 8px;
     opacity: 0.7;
@@ -361,17 +361,17 @@ function renderHtml(cspSource: string): string {
     min-height: 30px;
   }
   .group-header:hover { background: var(--vscode-list-hoverBackground); }
-  .group-header .chevron { font-size: 16px; line-height: 1; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
+  .group-header .chevron { font-size: 14px; line-height: 1; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
   .group.collapsed > .group-children { display: none; }
   .group.collapsed .chevron { transform: rotate(-90deg); }
-  .group-header .label { font-size: 13px; }
+  .group-header .label { font-size: 12px; }
   .group-header .count { opacity: 0.6; font-size: 11px; margin-left: auto; }
   .group-children { margin-left: 16px; border-left: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)); padding-left: 4px; }
   .row { display: flex; flex-direction: column; padding: 4px 8px; border-radius: 4px; gap: 0; }
   .row:hover { background: var(--vscode-list-hoverBackground); }
   .row-normal { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
   .row.editing .row-normal { display: none; }
-  .row-name { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .row-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
   .row-meta { font-size: 11px; opacity: 0.6; white-space: nowrap; }
   .actions { display: inline-flex; gap: 2px; }
   .actions button {
@@ -381,7 +381,7 @@ function renderHtml(cspSource: string): string {
     border-radius: 4px;
     padding: 3px 5px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1;
   }
   .actions button:hover { background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground)); }
@@ -394,7 +394,7 @@ function renderHtml(cspSource: string): string {
     border-radius: 4px;
     padding: 4px 8px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
     width: 100%;
     box-sizing: border-box;
     outline: none;
@@ -408,7 +408,7 @@ function renderHtml(cspSource: string): string {
     border-radius: 4px;
     padding: 3px 10px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-family: inherit;
   }
   .save-btn:hover { background: var(--vscode-button-hoverBackground); }
@@ -419,12 +419,12 @@ function renderHtml(cspSource: string): string {
     border-radius: 4px;
     padding: 3px 10px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     font-family: inherit;
     opacity: 0.7;
   }
   .cancel-btn:hover { background: var(--vscode-list-hoverBackground); opacity: 1; }
-  .empty { opacity: 0.5; font-size: 12px; padding: 6px 8px; }
+  .empty { opacity: 0.5; font-size: 11px; padding: 6px 8px; }
   .row[draggable="true"] { cursor: grab; }
   .row.dragging { opacity: 0.35; }
   .group-header.drag-over { background: var(--vscode-list-dropBackground, var(--vscode-list-hoverBackground)); outline: 2px dashed var(--vscode-focusBorder); border-radius: 4px; }
@@ -881,7 +881,7 @@ function renderPanelHtml(cspSource: string): string {
     padding-bottom: 12px;
     border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
   }
-  .section-title { font-size: 17px; font-weight: 700; }
+  .section-title { font-size: 15px; font-weight: 700; }
   .badge {
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
@@ -907,7 +907,7 @@ function renderPanelHtml(cspSource: string): string {
     outline: none;
     color: var(--vscode-input-foreground);
     font-family: inherit;
-    font-size: 13px;
+    font-size: 12px;
   }
   .search-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
   .search-row .search-bar { flex: 1; }
@@ -916,7 +916,7 @@ function renderPanelHtml(cspSource: string): string {
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1;
     padding: 4px 5px;
     color: inherit;
@@ -929,7 +929,7 @@ function renderPanelHtml(cspSource: string): string {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     padding: 6px 4px;
     margin-bottom: 8px;
@@ -938,14 +938,14 @@ function renderPanelHtml(cspSource: string): string {
     user-select: none;
   }
   .folder-title:hover { background: var(--vscode-list-hoverBackground); border-radius: 4px; }
-  .folder-title .chevron { font-size: 14px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
+  .folder-title .chevron { font-size: 12px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
   .folder-title .folder-sync-btn {
     margin-left: auto;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1;
     padding: 2px 6px;
     color: inherit;
@@ -978,7 +978,7 @@ function renderPanelHtml(cspSource: string): string {
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
   .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); }
   .prompt-content {
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.55;
     margin-bottom: 10px;
     white-space: pre-wrap;
@@ -1025,7 +1025,7 @@ function renderPanelHtml(cspSource: string): string {
   }
   .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
   .action-btn.action-btn-danger:hover { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); color: var(--vscode-errorForeground, #f48771); border-color: var(--vscode-inputValidation-errorBorder, #be1100); }
-  .empty { opacity: 0.5; font-size: 13px; padding: 24px 0; text-align: center; }
+  .empty { opacity: 0.5; font-size: 12px; padding: 24px 0; text-align: center; }
   .card-edit-form { display: none; flex-direction: column; gap: 6px; padding: 8px 0 4px; }
   .card-editing .card-edit-form { display: flex; }
   .card-editing .prompt-content { display: none; }
@@ -1036,7 +1036,7 @@ function renderPanelHtml(cspSource: string): string {
     box-sizing: border-box;
     color: var(--vscode-input-foreground);
     font: inherit;
-    font-size: 12px;
+    font-size: 11px;
     min-height: 80px;
     padding: 6px;
     resize: vertical;
@@ -1056,7 +1056,7 @@ function renderPanelHtml(cspSource: string): string {
     margin-bottom: 6px;
   }
   .response-content {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.6;
     opacity: 0.85;
     white-space: pre-wrap;
