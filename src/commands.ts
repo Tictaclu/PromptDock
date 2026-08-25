@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { Storage } from './storage';
 import { BUILTIN_PRESETS, PRESET_CATEGORY_TO_FOLDER } from './presets';
@@ -204,24 +207,84 @@ export function registerCommands(
     vscode.window.showInformationMessage(`Imported ${toImport.length} preset prompt(s).`);
   });
 
-  register('promptdock.exportTemplates', async () => {
+  register('promptdock.exportMyTemplates', async () => {
     const templates = storage.getTemplates();
     const folders = storage.getFolders();
-    if (templates.length === 0) {
-      vscode.window.showInformationMessage('No templates to export.');
-      return;
+    const dateStr = new Date().toLocaleDateString();
+    const lines: string[] = [`# My Templates\n\n*Exported ${dateStr}*\n`];
+
+    const folderMap = new Map(folders.map((f) => [f.id, f]));
+    const sorted = [...folders].sort((a, b) => a.createdAt - b.createdAt);
+
+    for (const folder of sorted) {
+      const folderTemplates = templates.filter((t) => t.folderId === folder.id).sort((a, b) => b.updatedAt - a.updatedAt);
+      lines.push(`\n## 📁 ${folder.name}\n`);
+      if (folderTemplates.length === 0) {
+        lines.push('*No templates.*\n');
+      }
+      for (const t of folderTemplates) {
+        lines.push(`### ${t.name}\n\n${t.content}\n`);
+      }
     }
-    const uri = await vscode.window.showSaveDialog({
-      defaultUri: vscode.Uri.file('promptdock-templates.json'),
-      filters: { JSON: ['json'] },
-      saveLabel: 'Export',
-    });
-    if (!uri) {
-      return;
+
+    const unfiled = templates.filter((t) => !t.folderId || !folderMap.has(t.folderId)).sort((a, b) => b.updatedAt - a.updatedAt);
+    if (unfiled.length > 0) {
+      lines.push('\n## 📄 Unfiled\n');
+      for (const t of unfiled) {
+        lines.push(`### ${t.name}\n\n${t.content}\n`);
+      }
     }
-    const payload = JSON.stringify({ folders, templates }, null, 2);
-    await vscode.workspace.fs.writeFile(uri, Buffer.from(payload, 'utf8'));
-    vscode.window.showInformationMessage(`Exported ${templates.length} template(s) to ${uri.fsPath}`);
+
+    const dest = path.join(os.homedir(), 'Desktop', 'myTemplates.md');
+    fs.writeFileSync(dest, lines.join('\n'), 'utf8');
+    vscode.window.showInformationMessage(`Exported ${templates.length} template(s) to ${dest}`);
+  });
+
+  register('promptdock.exportAllPrompts', async () => {
+    const imported = storage.getImportedPrompts();
+    const dateStr = new Date().toLocaleDateString();
+    const lines: string[] = [`# PromptDock — All Prompts\n\n*Exported ${dateStr}*\n`];
+
+    const bySource = new Map<string, typeof imported>();
+    for (const p of imported) {
+      const list = bySource.get(p.source);
+      if (list) list.push(p); else bySource.set(p.source, [p]);
+    }
+
+    const SOURCE_ORDER_LOCAL = ['claude-code', 'copilot-chat', 'codex'];
+    const SOURCE_LABELS_LOCAL: Record<string, string> = { 'claude-code': '🟠 Claude', 'copilot-chat': '🔵 Copilot', codex: '🟢 Codex' };
+
+    for (const source of SOURCE_ORDER_LOCAL) {
+      const prompts = bySource.get(source) ?? [];
+      lines.push(`\n---\n\n## ${SOURCE_LABELS_LOCAL[source]} — ${prompts.length} prompts\n`);
+      if (prompts.length === 0) { lines.push('*Nothing imported yet.*\n'); continue; }
+
+      const byProject = new Map<string, typeof prompts>();
+      for (const p of prompts) {
+        const list = byProject.get(p.project);
+        if (list) list.push(p); else byProject.set(p.project, [p]);
+      }
+
+      for (const [project, items] of byProject) {
+        lines.push(`\n### 📁 ${project}\n`);
+        const bySession = new Map<string, typeof items>();
+        for (const p of items) {
+          const list = bySession.get(p.sessionId);
+          if (list) list.push(p); else bySession.set(p.sessionId, [p]);
+        }
+        for (const [, sessionItems] of bySession) {
+          const sorted = [...sessionItems].sort((a, b) => a.usedAt - b.usedAt);
+          lines.push(`\n#### 💬 ${sorted[0].name}\n`);
+          for (const p of sorted) {
+            lines.push(`**${p.name}**\n*${new Date(p.usedAt).toLocaleString()}*\n\n${p.content}\n`);
+          }
+        }
+      }
+    }
+
+    const dest = path.join(os.homedir(), 'Desktop', 'promptdeck.md');
+    fs.writeFileSync(dest, lines.join('\n'), 'utf8');
+    vscode.window.showInformationMessage(`Exported ${imported.length} prompt(s) to ${dest}`);
   });
 
   register('promptdock.restoreHiddenPresets', async () => {

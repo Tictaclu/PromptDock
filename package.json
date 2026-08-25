@@ -139,8 +139,14 @@
         "category": "PromptDock"
       },
       {
-        "command": "promptdock.exportTemplates",
-        "title": "Export My Templates...",
+        "command": "promptdock.exportMyTemplates",
+        "title": "Export My Templates to Desktop",
+        "icon": "$(save-as)",
+        "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.exportAllPrompts",
+        "title": "Export All Prompts to Desktop",
         "icon": "$(export)",
         "category": "PromptDock"
       }
@@ -156,6 +162,16 @@
           "command": "promptdock.refresh",
           "when": "view == promptdock.view",
           "group": "navigation@2"
+        },
+        {
+          "command": "promptdock.exportMyTemplates",
+          "when": "view == promptdock.view",
+          "group": "navigation@3"
+        },
+        {
+          "command": "promptdock.exportAllPrompts",
+          "when": "view == promptdock.view",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -193,11 +209,6 @@
           "command": "promptdock.importAllPresets",
           "when": "view == promptdock.view && viewItem == templatesGroup",
           "group": "1_edit@2"
-        },
-        {
-          "command": "promptdock.exportTemplates",
-          "when": "view == promptdock.view && viewItem == templatesGroup",
-          "group": "inline@1"
         },
         {
           "command": "promptdock.createTemplate",
