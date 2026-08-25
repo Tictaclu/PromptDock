@@ -204,6 +204,26 @@ export function registerCommands(
     vscode.window.showInformationMessage(`Imported ${toImport.length} preset prompt(s).`);
   });
 
+  register('promptdock.exportTemplates', async () => {
+    const templates = storage.getTemplates();
+    const folders = storage.getFolders();
+    if (templates.length === 0) {
+      vscode.window.showInformationMessage('No templates to export.');
+      return;
+    }
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file('promptdock-templates.json'),
+      filters: { JSON: ['json'] },
+      saveLabel: 'Export',
+    });
+    if (!uri) {
+      return;
+    }
+    const payload = JSON.stringify({ folders, templates }, null, 2);
+    await vscode.workspace.fs.writeFile(uri, Buffer.from(payload, 'utf8'));
+    vscode.window.showInformationMessage(`Exported ${templates.length} template(s) to ${uri.fsPath}`);
+  });
+
   register('promptdock.restoreHiddenPresets', async () => {
     const dismissedIds = storage.getDismissedPresetIds();
     if (dismissedIds.size === 0) {
