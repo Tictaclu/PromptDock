@@ -1027,19 +1027,32 @@ function renderPanelHtml(cspSource: string): string {
   .action-btn.action-btn-danger:hover { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); color: var(--vscode-errorForeground, #f48771); border-color: var(--vscode-inputValidation-errorBorder, #be1100); }
   .empty { opacity: 0.5; font-size: 12px; padding: 24px 0; text-align: center; }
   .card-edit-form { display: none; flex-direction: column; gap: 6px; padding: 8px 0 4px; }
-  .card-editing .card-edit-form { display: flex; }
+  .card-editing .card-edit-form { display: flex; flex: 1; }
   .card-editing .prompt-content { display: none; }
+  .card-editing .prompt-response { display: none; }
+  .prompt-card.card-editing {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    border-radius: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  body:has(.card-editing) { overflow: hidden; }
   .card-edit-form textarea {
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-input-border, transparent);
     border-radius: 4px;
     box-sizing: border-box;
     color: var(--vscode-input-foreground);
+    flex: 1;
     font: inherit;
     font-size: 11px;
-    min-height: 80px;
+    min-height: 0;
     padding: 6px;
-    resize: vertical;
+    resize: none;
     width: 100%;
   }
   .prompt-response {
