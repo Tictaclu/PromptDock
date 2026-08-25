@@ -149,6 +149,12 @@
         "title": "Export All Prompts to Desktop",
         "icon": "$(export)",
         "category": "PromptDock"
+      },
+      {
+        "command": "promptdock.forceResync",
+        "title": "Force Full Resync (clear cache and re-read all history)",
+        "icon": "$(sync-ignored)",
+        "category": "PromptDock"
       }
     ],
     "menus": {
@@ -172,6 +178,11 @@
           "command": "promptdock.exportAllPrompts",
           "when": "view == promptdock.view",
           "group": "navigation@4"
+        },
+        {
+          "command": "promptdock.forceResync",
+          "when": "view == promptdock.view",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [

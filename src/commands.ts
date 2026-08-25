@@ -60,6 +60,23 @@ export function registerCommands(
     }
   });
 
+  register('promptdock.forceResync', async () => {
+    const confirm = await vscode.window.showWarningMessage(
+      'Force Full Resync will re-read all Claude Code / Copilot / Codex history from scratch. This recovers any prompts that were missed in previous syncs. Continue?',
+      { modal: true },
+      'Resync',
+    );
+    if (confirm !== 'Resync') {
+      return;
+    }
+    await storage.clearFileScanStats();
+    vscode.window.setStatusBarMessage('PromptDock: Re-scanning all history…', 3000);
+    const imported = await syncExternalPrompts(context, storage, outputChannel);
+    if (imported === 0) {
+      vscode.window.setStatusBarMessage('PromptDock: No new prompts found after full resync.', 4000);
+    }
+  });
+
   register('promptdock.createTemplate', async (node?: FolderItem) => {
     const name = await vscode.window.showInputBox({
       prompt: 'Template name',

@@ -207,6 +207,10 @@ export class Storage {
     await this.memento.update(FILE_SCAN_STATS_KEY, stats);
   }
 
+  async clearFileScanStats(): Promise<void> {
+    await this.memento.update(FILE_SCAN_STATS_KEY, {});
+  }
+
   // ---- Dismissed presets ----
   // Presets are read-only, built into the extension — "deleting" one just hides it per-user
   // rather than removing the definition, and can be undone via restoreDismissedPresets.
