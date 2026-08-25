@@ -493,12 +493,6 @@ function renderHtml(cspSource: string): string {
 
       const actions = el('div', 'actions');
 
-      if (isImported) {
-        const copyBtn = el('button', '', '⧉');
-        copyBtn.title = 'Copy to Clipboard';
-        copyBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'use', id: row.id, action: 'copy' }); });
-        actions.appendChild(copyBtn);
-      }
 
       if (isTemplate) {
         const delBtn = el('button', '', '🗑');
@@ -1177,11 +1171,6 @@ function renderPanelHtml(cspSource: string): string {
         return b;
       }
 
-      const copyBtn = makeBtn('action-btn', '⎘', 'Copy');
-      copyBtn.title = 'Copy prompt to clipboard';
-      copyBtn.addEventListener('click', () => {
-        vscode.postMessage({ type: 'use', id: row.id, action: 'copy', content: card.dataset.content });
-      });
 
       const alreadyTemplate = row.id.startsWith('template:') || row.id.startsWith('preset:');
       if (!alreadyTemplate) {
@@ -1207,7 +1196,6 @@ function renderPanelHtml(cspSource: string): string {
       editBtn.title = 'Edit prompt text';
       editBtn.addEventListener('click', () => { editArea.value = card.dataset.content; card.classList.toggle('card-editing'); });
 
-      actions.appendChild(copyBtn);
       if (row.id.startsWith('template:')) {
         const delBtn = makeBtn('action-btn action-btn-danger', '🗑', 'Delete');
         delBtn.title = 'Delete this template';
