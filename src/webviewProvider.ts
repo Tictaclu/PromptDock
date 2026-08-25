@@ -626,6 +626,10 @@ function renderHtml(cspSource: string): string {
     function renderSourceCard(source, query) {
       const card = el('div', 'card' + (expandedCards.has(source.source) ? '' : ' collapsed'));
       const header = renderCardHeader(source.source, source.icon + ' ' + source.label, source.count);
+      const syncBtn = el('button', 'card-sync-btn', '↻');
+      syncBtn.title = 'Sync prompts from ' + source.label;
+      syncBtn.addEventListener('click', (e) => { e.stopPropagation(); vscode.postMessage({ type: 'sync' }); });
+      header.insertBefore(syncBtn, header.querySelector('.toggle'));
       card.appendChild(header);
 
       const body = el('div', 'card-body');
