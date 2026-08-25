@@ -211,6 +211,24 @@ export class Storage {
     await this.memento.update(FILE_SCAN_STATS_KEY, {});
   }
 
+  /** Updates the response field on already-imported prompts that currently lack one. Returns the count updated. */
+  async backfillImportedResponses(updates: Map<string, string>): Promise<number> {
+    if (updates.size === 0) return 0;
+    const prompts = this.getImportedPrompts();
+    let count = 0;
+    for (const p of prompts) {
+      if (!p.response && updates.has(p.id)) {
+        p.response = updates.get(p.id);
+        count++;
+      }
+    }
+    if (count > 0) {
+      await this.memento.update(IMPORTED_PROMPTS_KEY, prompts);
+      this.fireChange();
+    }
+    return count;
+  }
+
   // ---- Dismissed presets ----
   // Presets are read-only, built into the extension — "deleting" one just hides it per-user
   // rather than removing the definition, and can be undone via restoreDismissedPresets.

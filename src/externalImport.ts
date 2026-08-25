@@ -335,8 +335,9 @@ async function findCodexSessionFiles(): Promise<string[]> {
 export async function scanCodexPrompts(
   alreadyImported: ReadonlySet<string>,
   cache: FileScanCache,
-): Promise<ImportedPrompt[]> {
+): Promise<ScanResult> {
   const results: ImportedPrompt[] = [];
+  const responseUpdates = new Map<string, string>();
   const files = await findCodexSessionFiles();
 
   for (const filePath of files) {
@@ -380,12 +381,16 @@ export async function scanCodexPrompts(
       const parsed = parseCodexLine(line);
       if (!parsed) return;
       const id = `codex:${filePath}:${index}`;
-      if (alreadyImported.has(id)) return;
+      const response = indexToResponse.get(index);
+      if (alreadyImported.has(id)) {
+        if (response) responseUpdates.set(id, response);
+        return;
+      }
       results.push({
         id,
         name: toName(parsed.text),
         content: parsed.text,
-        response: indexToResponse.get(index),
+        response,
         usedAt: parsed.timestamp,
         source: 'codex',
         project,
@@ -393,7 +398,7 @@ export async function scanCodexPrompts(
       });
     });
   }
-  return results;
+  return { prompts: results, responseUpdates };
 }
 
 function getClaudeCodeRoots(): string[] {
@@ -405,11 +410,17 @@ function getClaudeCodeRoots(): string[] {
   return roots;
 }
 
+interface ScanResult {
+  prompts: ImportedPrompt[];
+  responseUpdates: Map<string, string>;
+}
+
 export async function scanClaudeCodePrompts(
   alreadyImported: ReadonlySet<string>,
   cache: FileScanCache,
-): Promise<ImportedPrompt[]> {
+): Promise<ScanResult> {
   const results: ImportedPrompt[] = [];
+  const responseUpdates = new Map<string, string>();
   const seenIds = new Set<string>();
 
   for (const root of getClaudeCodeRoots()) {
@@ -440,17 +451,22 @@ export async function scanClaudeCodePrompts(
         if (assistant) responses.set(assistant.parentUuid, assistant.text);
       }
 
-      // Second pass: emit user messages with their paired response
+      // Second pass: emit new prompts, and collect response updates for already-imported ones
       for (const line of lines) {
         if (!line.trim()) continue;
         const parsed = parseClaudeCodeLine(line);
-        if (!parsed || alreadyImported.has(parsed.id) || seenIds.has(parsed.id)) continue;
+        if (!parsed || seenIds.has(parsed.id)) continue;
+        const response = responses.get(parsed.uuid);
+        if (alreadyImported.has(parsed.id)) {
+          if (response) responseUpdates.set(parsed.id, response);
+          continue;
+        }
         seenIds.add(parsed.id);
         results.push({
           id: parsed.id,
           name: toName(parsed.text),
           content: parsed.text,
-          response: responses.get(parsed.uuid),
+          response,
           usedAt: parsed.timestamp,
           source: 'claude-code',
           project: folderName(parsed.cwd),
@@ -460,15 +476,16 @@ export async function scanClaudeCodePrompts(
     }
   }
   } // end getClaudeCodeRoots loop
-  return results;
+  return { prompts: results, responseUpdates };
 }
 
 export async function scanCopilotChatPrompts(
   vsCodeUserDir: string,
   alreadyImported: ReadonlySet<string>,
   cache: FileScanCache,
-): Promise<ImportedPrompt[]> {
+): Promise<ScanResult> {
   const results: ImportedPrompt[] = [];
+  const responseUpdates = new Map<string, string>();
   const workspaceStorageDir = path.join(vsCodeUserDir, 'workspaceStorage');
   const workspaceDirs = await readDirSafe(workspaceStorageDir);
 
@@ -507,16 +524,17 @@ export async function scanCopilotChatPrompts(
           return;
         }
         const id = `copilot-chat:${sessionId}:${request.requestId ?? index}`;
-        if (alreadyImported.has(id)) {
-          return;
-        }
         const timestamp = typeof request.timestamp === 'number' ? request.timestamp : fallbackTimestamp;
         const response = extractCopilotResponseText(request) ?? undefined;
+        if (alreadyImported.has(id)) {
+          if (response) responseUpdates.set(id, response);
+          return;
+        }
         results.push({ id, name: toName(text), content: text, response, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
       });
     }
   }
-  return results;
+  return { prompts: results, responseUpdates };
 }
 
 function summarizeByDate(candidates: ImportedPrompt[]): string {
@@ -555,9 +573,15 @@ export async function syncExternalPrompts(
       scanCopilotChatPrompts(vsCodeUserDir, alreadyImported, cache),
       scanCodexPrompts(alreadyImported, cache),
     ]);
-    const found = [...claudeCode, ...copilot, ...codex];
+    const found = [...claudeCode.prompts, ...copilot.prompts, ...codex.prompts];
+    const allResponseUpdates = new Map([
+      ...claudeCode.responseUpdates,
+      ...copilot.responseUpdates,
+      ...codex.responseUpdates,
+    ]);
 
     const imported = await storage.importExternalPrompts(found);
+    await storage.backfillImportedResponses(allResponseUpdates);
     await storage.setFileScanStats(cache.toMergedStats());
     const now = new Date().toISOString();
 
