@@ -979,13 +979,46 @@ function renderPanelHtml(cspSource: string): string {
   }
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
   .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); }
+  .prompt-title-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 6px;
+    min-width: 0;
+  }
   .prompt-title {
     font-size: 12px;
     font-weight: 600;
-    margin-bottom: 6px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+  }
+  .prompt-title-edit-btn {
+    background: none;
+    border: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0;
+    padding: 1px 3px;
+    transition: opacity 0.1s;
+    flex-shrink: 0;
+  }
+  .prompt-card:hover .prompt-title-edit-btn { opacity: 0.5; }
+  .prompt-title-edit-btn:hover { opacity: 1 !important; }
+  .prompt-title-input {
+    background: var(--vscode-input-background);
+    border: 1px solid var(--vscode-focusBorder);
+    border-radius: 3px;
+    color: var(--vscode-input-foreground);
+    font: 600 12px inherit;
+    margin-bottom: 6px;
+    outline: none;
+    padding: 2px 5px;
+    width: 100%;
   }
   .prompt-content {
     font-size: 11px;
@@ -1144,8 +1177,39 @@ function renderPanelHtml(cspSource: string): string {
       card.dataset.content = row.content;
 
       if (row.name) {
+        const isTemplate = row.id.startsWith('template:');
+        const titleRow = el('div', 'prompt-title-row');
         const titleEl = el('div', 'prompt-title', row.name);
-        card.appendChild(titleEl);
+        titleRow.appendChild(titleEl);
+
+        if (isTemplate) {
+          const editTitleBtn = el('button', 'prompt-title-edit-btn', '✎');
+          editTitleBtn.title = 'Rename this template';
+          editTitleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'prompt-title-input';
+            input.value = titleEl.textContent;
+            titleRow.replaceWith(input);
+            input.focus();
+            input.select();
+            function commit() {
+              const newName = input.value.trim();
+              if (newName && newName !== row.name) {
+                titleEl.textContent = newName;
+                row.name = newName;
+                vscode.postMessage({ type: 'updateTemplate', id: row.id, name: newName, content: card.dataset.content });
+              }
+              input.replaceWith(titleRow);
+            }
+            input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } else if (ev.key === 'Escape') { input.replaceWith(titleRow); } });
+            input.addEventListener('blur', commit);
+          });
+          titleRow.appendChild(editTitleBtn);
+        }
+
+        card.appendChild(titleRow);
       }
 
       const content = el('div', 'prompt-content', row.content);
