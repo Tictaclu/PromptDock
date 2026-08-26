@@ -1179,7 +1179,6 @@ function renderPanelHtml(cspSource: string): string {
         const isTemplate = row.id.startsWith('template:');
         const titleRow = el('div', 'prompt-title-row');
         const titleEl = el('div', 'prompt-title', row.name);
-        titleRow.appendChild(titleEl);
 
         if (isTemplate) {
           const editTitleBtn = el('button', 'prompt-title-edit-btn', '✎');
@@ -1208,6 +1207,7 @@ function renderPanelHtml(cspSource: string): string {
           titleRow.appendChild(editTitleBtn);
         }
 
+        titleRow.appendChild(titleEl);
         card.appendChild(titleRow);
       }
 
