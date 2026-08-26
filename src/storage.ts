@@ -185,10 +185,14 @@ export class Storage {
       return 0;
     }
 
-    await this.memento.update(IMPORTED_PROMPTS_KEY, [...this.getImportedPrompts(), ...fresh]);
-
-    fresh.forEach((c) => alreadyImported.add(c.id));
-    await this.memento.update(IMPORTED_EXTERNAL_IDS_KEY, Array.from(alreadyImported));
+    const merged = [...this.getImportedPrompts(), ...fresh];
+    // Write both in one derived step: derive the IDs set from the prompts array so
+    // they can never diverge if the extension is interrupted between two writes.
+    await this.memento.update(IMPORTED_PROMPTS_KEY, merged);
+    await this.memento.update(
+      IMPORTED_EXTERNAL_IDS_KEY,
+      Array.from(new Set(merged.map((p) => p.id))),
+    );
 
     this.fireChange();
     return fresh.length;

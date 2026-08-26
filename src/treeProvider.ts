@@ -252,11 +252,13 @@ export class PromptDockTreeProvider implements vscode.TreeDataProvider<TreeNode>
     }
 
     if (element instanceof SessionGroupItem) {
+      const seen = new Set<string>();
       return this.storage
         .getImportedPrompts()
         .filter(
           (p) => p.source === element.source && p.project === element.project && p.sessionId === element.sessionId,
         )
+        .filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
         .sort((a, b) => b.usedAt - a.usedAt)
         .map((p) => new ImportedPromptItem(p));
     }

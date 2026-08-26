@@ -338,6 +338,7 @@ export async function scanCodexPrompts(
 ): Promise<ScanResult> {
   const results: ImportedPrompt[] = [];
   const responseUpdates = new Map<string, string>();
+  const seenIds = new Set<string>();
   const files = await findCodexSessionFiles();
 
   for (const filePath of files) {
@@ -386,6 +387,8 @@ export async function scanCodexPrompts(
         if (response) responseUpdates.set(id, response);
         return;
       }
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
       results.push({
         id,
         name: toName(parsed.text),
@@ -486,6 +489,7 @@ export async function scanCopilotChatPrompts(
 ): Promise<ScanResult> {
   const results: ImportedPrompt[] = [];
   const responseUpdates = new Map<string, string>();
+  const seenIds = new Set<string>();
   const workspaceStorageDir = path.join(vsCodeUserDir, 'workspaceStorage');
   const workspaceDirs = await readDirSafe(workspaceStorageDir);
 
@@ -530,6 +534,8 @@ export async function scanCopilotChatPrompts(
           if (response) responseUpdates.set(id, response);
           return;
         }
+        if (seenIds.has(id)) return;
+        seenIds.add(id);
         results.push({ id, name: toName(text), content: text, response, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
       });
     }
