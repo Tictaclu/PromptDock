@@ -1002,12 +1002,11 @@ function renderPanelHtml(cspSource: string): string {
     cursor: pointer;
     font-size: 11px;
     line-height: 1;
-    opacity: 0;
+    opacity: 0.6;
     padding: 1px 3px;
     transition: opacity 0.1s;
     flex-shrink: 0;
   }
-  .prompt-title-edit-btn { opacity: 0.4; }
   .prompt-title-edit-btn:hover { opacity: 1; }
   .prompt-title-input {
     background: var(--vscode-input-background);
@@ -1595,6 +1594,11 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
         await storage.dismissPreset(rawId);
         vscode.window.setStatusBarMessage(`PromptDock: Moved "${preset.name}" to Deleted`, 3000);
       }
+      return;
+    }
+    if (message?.type === 'updateTemplate') {
+      const rawId = (message.id as string).replace(/^template:/, '');
+      await storage.updateTemplate(rawId, { name: message.name, content: message.content });
       return;
     }
     if (message?.type === 'sync') {
