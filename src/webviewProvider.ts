@@ -881,13 +881,13 @@ function renderPanelHtml(cspSource: string): string {
     padding-bottom: 12px;
     border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
   }
-  .section-title { font-size: 15px; font-weight: 700; }
+  .section-title { font-size: 13px; font-weight: 700; }
   .badge {
     background: var(--vscode-badge-background);
     color: var(--vscode-badge-foreground);
     border-radius: 10px;
     padding: 2px 8px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
   }
   .search-bar {
@@ -907,7 +907,7 @@ function renderPanelHtml(cspSource: string): string {
     outline: none;
     color: var(--vscode-input-foreground);
     font-family: inherit;
-    font-size: 12px;
+    font-size: 11px;
   }
   .search-row { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
   .search-row .search-bar { flex: 1; }
@@ -916,7 +916,7 @@ function renderPanelHtml(cspSource: string): string {
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1;
     padding: 4px 5px;
     color: inherit;
@@ -929,7 +929,7 @@ function renderPanelHtml(cspSource: string): string {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     padding: 6px 4px;
     margin-bottom: 8px;
@@ -938,14 +938,14 @@ function renderPanelHtml(cspSource: string): string {
     user-select: none;
   }
   .folder-title:hover { background: var(--vscode-list-hoverBackground); border-radius: 4px; }
-  .folder-title .chevron { font-size: 12px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
+  .folder-title .chevron { font-size: 11px; min-width: 16px; text-align: center; transition: transform 0.15s ease; }
   .folder-title .folder-sync-btn {
     margin-left: auto;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1;
     padding: 2px 6px;
     color: inherit;
@@ -959,7 +959,7 @@ function renderPanelHtml(cspSource: string): string {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     opacity: 0.6;
     margin-bottom: 8px;
@@ -978,7 +978,7 @@ function renderPanelHtml(cspSource: string): string {
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
   .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); }
   .prompt-content {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.55;
     margin-bottom: 10px;
     white-space: pre-wrap;
@@ -992,7 +992,7 @@ function renderPanelHtml(cspSource: string): string {
     justify-content: space-between;
     gap: 8px;
   }
-  .prompt-meta { font-size: 11px; opacity: 0.45; white-space: nowrap; }
+  .prompt-meta { font-size: 10px; opacity: 0.45; white-space: nowrap; }
   .prompt-actions { display: flex; gap: 6px; flex-shrink: 0; }
   .action-btn {
     background: var(--vscode-button-secondaryBackground, var(--vscode-editorWidget-background));
@@ -1002,7 +1002,7 @@ function renderPanelHtml(cspSource: string): string {
     padding: 4px 10px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 500;
     display: inline-flex;
     align-items: center;
@@ -1025,7 +1025,7 @@ function renderPanelHtml(cspSource: string): string {
   }
   .action-btn.primary:hover { background: var(--vscode-button-hoverBackground); }
   .action-btn.action-btn-danger:hover { background: var(--vscode-inputValidation-errorBackground, #5a1d1d); color: var(--vscode-errorForeground, #f48771); border-color: var(--vscode-inputValidation-errorBorder, #be1100); }
-  .empty { opacity: 0.5; font-size: 12px; padding: 24px 0; text-align: center; }
+  .empty { opacity: 0.5; font-size: 11px; padding: 24px 0; text-align: center; }
   .card-edit-form { display: none; flex-direction: column; gap: 6px; padding: 8px 0 4px; }
   .card-editing .card-edit-form { display: flex; flex: 1; }
   .card-editing .prompt-content { display: none; }
@@ -1049,7 +1049,7 @@ function renderPanelHtml(cspSource: string): string {
     color: var(--vscode-input-foreground);
     flex: 1;
     font: inherit;
-    font-size: 11px;
+    font-size: 10px;
     min-height: 0;
     padding: 6px;
     resize: none;
@@ -1061,7 +1061,7 @@ function renderPanelHtml(cspSource: string): string {
     border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
   }
   .response-label {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     opacity: 0.5;
     text-transform: uppercase;
@@ -1069,7 +1069,7 @@ function renderPanelHtml(cspSource: string): string {
     margin-bottom: 6px;
   }
   .response-content {
-    font-size: 11px;
+    font-size: 10px;
     line-height: 1.6;
     opacity: 0.85;
     white-space: pre-wrap;
@@ -1083,7 +1083,7 @@ function renderPanelHtml(cspSource: string): string {
     color: var(--vscode-foreground);
     cursor: pointer;
     font: inherit;
-    font-size: 11px;
+    font-size: 10px;
     padding: 2px 8px;
   }
   .card-edit-save { border-color: var(--vscode-button-background); color: var(--vscode-button-background); }
