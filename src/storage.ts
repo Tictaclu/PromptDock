@@ -180,7 +180,13 @@ export class Storage {
    */
   async importExternalPrompts(candidates: ImportedPrompt[]): Promise<number> {
     const alreadyImported = this.getImportedExternalIds();
-    const fresh = candidates.filter((c) => !alreadyImported.has(c.id));
+    // Dedup within candidates too, in case two scanners or two files produced the same ID.
+    const seenInBatch = new Set<string>();
+    const fresh = candidates.filter((c) => {
+      if (alreadyImported.has(c.id) || seenInBatch.has(c.id)) return false;
+      seenInBatch.add(c.id);
+      return true;
+    });
     if (fresh.length === 0) {
       return 0;
     }

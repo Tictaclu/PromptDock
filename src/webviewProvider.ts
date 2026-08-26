@@ -121,7 +121,9 @@ export function buildState(storage: Storage): WebviewState {
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .map((t) => ({ id: `template:${t.id}`, name: t.name, content: t.content }));
 
-  const imported = storage.getImportedPrompts();
+  const importedRaw = storage.getImportedPrompts();
+  const seenImportedIds = new Set<string>();
+  const imported = importedRaw.filter((p) => { if (seenImportedIds.has(p.id)) return false; seenImportedIds.add(p.id); return true; });
   const sources: SourceData[] = SOURCE_ORDER.map((source) => {
     const prompts = imported.filter((p) => p.source === source);
     const byProject = new Map<string, ImportedPrompt[]>();
