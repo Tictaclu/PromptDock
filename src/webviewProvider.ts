@@ -979,6 +979,14 @@ function renderPanelHtml(cspSource: string): string {
   }
   .prompt-card:hover { border-color: var(--vscode-focusBorder); }
   .prompt-card.highlight { border-color: var(--vscode-focusBorder); box-shadow: 0 0 0 2px var(--vscode-focusBorder); }
+  .prompt-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .prompt-content {
     font-size: 11px;
     line-height: 1.55;
@@ -1134,6 +1142,11 @@ function renderPanelHtml(cspSource: string): string {
       const card = el('div', 'prompt-card');
       card.dataset.promptId = row.id;
       card.dataset.content = row.content;
+
+      if (row.name) {
+        const titleEl = el('div', 'prompt-title', row.name);
+        card.appendChild(titleEl);
+      }
 
       const content = el('div', 'prompt-content', row.content);
       content.title = 'Click to copy & insert at cursor';
