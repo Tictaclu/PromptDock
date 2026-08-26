@@ -221,6 +221,18 @@ export class Storage {
     await this.memento.update(FILE_SCAN_STATS_KEY, {});
   }
 
+  /**
+   * Wipes the imported-external archive and its dedup id set so a subsequent sync rebuilds
+   * it entirely from the current Claude Code/Copilot/Codex history files. Used by Force Full
+   * Resync — without this, re-scanned prompts keep matching the old id set and get filtered
+   * out as "already imported", so the resync silently finds nothing.
+   */
+  async clearImportedPrompts(): Promise<void> {
+    await this.memento.update(IMPORTED_PROMPTS_KEY, []);
+    await this.memento.update(IMPORTED_EXTERNAL_IDS_KEY, []);
+    this.fireChange();
+  }
+
   /** Updates the response field on already-imported prompts that currently lack one. Returns the count updated. */
   async backfillImportedResponses(updates: Map<string, string>): Promise<number> {
     if (updates.size === 0) return 0;

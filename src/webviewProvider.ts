@@ -842,7 +842,16 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
         return;
       }
       if (message?.type === 'forceResync') {
+        const confirm = await vscode.window.showWarningMessage(
+          'Force Full Resync will rebuild the entire imported prompt archive from your current Claude Code / Copilot / Codex history files. This recovers prompts that were missed in previous syncs. Continue?',
+          { modal: true },
+          'Resync',
+        );
+        if (confirm !== 'Resync') {
+          return;
+        }
         await this.storage.clearFileScanStats();
+        await this.storage.clearImportedPrompts();
         vscode.window.setStatusBarMessage('PromptDock: Re-scanning all history…', 3000);
         void this.onSync?.();
         return;

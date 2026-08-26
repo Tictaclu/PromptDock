@@ -62,7 +62,7 @@ export function registerCommands(
 
   register('promptdock.forceResync', async () => {
     const confirm = await vscode.window.showWarningMessage(
-      'Force Full Resync will re-read all Claude Code / Copilot / Codex history from scratch. This recovers any prompts that were missed in previous syncs. Continue?',
+      'Force Full Resync will rebuild the entire imported prompt archive from your current Claude Code / Copilot / Codex history files. This recovers prompts that were missed in previous syncs. Continue?',
       { modal: true },
       'Resync',
     );
@@ -70,6 +70,7 @@ export function registerCommands(
       return;
     }
     await storage.clearFileScanStats();
+    await storage.clearImportedPrompts();
     vscode.window.setStatusBarMessage('PromptDock: Re-scanning all history…', 3000);
     const imported = await syncExternalPrompts(context, storage, outputChannel);
     if (imported === 0) {
