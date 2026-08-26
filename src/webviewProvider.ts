@@ -1007,8 +1007,8 @@ function renderPanelHtml(cspSource: string): string {
     transition: opacity 0.1s;
     flex-shrink: 0;
   }
-  .prompt-card:hover .prompt-title-edit-btn { opacity: 0.5; }
-  .prompt-title-edit-btn:hover { opacity: 1 !important; }
+  .prompt-title-edit-btn { opacity: 0.4; }
+  .prompt-title-edit-btn:hover { opacity: 1; }
   .prompt-title-input {
     background: var(--vscode-input-background);
     border: 1px solid var(--vscode-focusBorder);
