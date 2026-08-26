@@ -1177,12 +1177,13 @@ function renderPanelHtml(cspSource: string): string {
 
       if (row.name) {
         const isTemplate = row.id.startsWith('template:');
+        const isPreset = row.id.startsWith('preset:');
         const titleRow = el('div', 'prompt-title-row');
         const titleEl = el('div', 'prompt-title', row.name);
 
-        if (isTemplate) {
+        if (isTemplate || isPreset) {
           const editTitleBtn = el('button', 'prompt-title-edit-btn', '✎');
-          editTitleBtn.title = 'Rename this template';
+          editTitleBtn.title = isPreset ? 'Rename (converts to your template)' : 'Rename this template';
           editTitleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             const input = document.createElement('input');
@@ -1197,7 +1198,11 @@ function renderPanelHtml(cspSource: string): string {
               if (newName && newName !== row.name) {
                 titleEl.textContent = newName;
                 row.name = newName;
-                vscode.postMessage({ type: 'updateTemplate', id: row.id, name: newName, content: card.dataset.content });
+                if (isPreset) {
+                  vscode.postMessage({ type: 'renamePreset', id: row.id, name: newName, content: card.dataset.content });
+                } else {
+                  vscode.postMessage({ type: 'updateTemplate', id: row.id, name: newName, content: card.dataset.content });
+                }
               }
               input.replaceWith(titleRow);
             }
@@ -1593,6 +1598,18 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
         await storage.createTemplate(preset.name, preset.content, deletedFolder.id);
         await storage.dismissPreset(rawId);
         vscode.window.setStatusBarMessage(`PromptDock: Moved "${preset.name}" to Deleted`, 3000);
+      }
+      return;
+    }
+    if (message?.type === 'renamePreset') {
+      const rawId = (message.id as string).replace(/^preset:/, '');
+      const preset = BUILTIN_PRESETS.find((p) => p.id === rawId);
+      if (preset) {
+        const folderName = PRESET_CATEGORY_TO_FOLDER[preset.category];
+        const folderId = folderName ? storage.getFolders().find((f) => f.name === folderName)?.id : undefined;
+        await storage.createTemplate(message.name as string, message.content as string, folderId);
+        await storage.dismissPreset(rawId);
+        vscode.window.setStatusBarMessage(`PromptDock: Renamed "${preset.name}" to "${message.name}"`, 3000);
       }
       return;
     }
