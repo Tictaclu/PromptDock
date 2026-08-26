@@ -78,11 +78,15 @@ async function readDirSafe(dirPath: string): Promise<string[]> {
 
 function extractTextFromContent(content: unknown): string {
   if (Array.isArray(content)) {
-    return content
+    const textParts = content
       .filter((c: any) => c?.type === 'text' && typeof c.text === 'string')
-      .map((c: any) => c.text as string)
-      .join('\n')
-      .trim();
+      .map((c: any) => c.text as string);
+    if (textParts.length > 0) return textParts.join('\n').trim();
+    // Fallback: when the reply is tool-only (no text block), summarise what tools were called
+    const toolNames = content
+      .filter((c: any) => c?.type === 'tool_use' && typeof c.name === 'string')
+      .map((c: any) => c.name as string);
+    return toolNames.length > 0 ? `[Tool calls: ${toolNames.join(', ')}]` : '';
   }
   if (typeof content === 'string') {
     return content.trim();
@@ -151,18 +155,22 @@ export function extractCopilotResponseText(request: any): string | null {
   const candidates = [
     request.response?.message,
     request.response?.text,
+    request.response?.value,
+    request.response?.message?.value,
     request.result?.value,
     request.reply,
   ];
   for (const c of candidates) {
     if (typeof c === 'string' && c.trim()) return c.trim();
   }
-  if (Array.isArray(request.response?.parts)) {
-    const text = request.response.parts
-      .map((p: any) => (typeof p?.text === 'string' ? p.text : ''))
-      .join('')
-      .trim();
-    if (text) return text;
+  for (const parts of [request.response?.parts, request.response?.content]) {
+    if (Array.isArray(parts)) {
+      const text = parts
+        .map((p: any) => (typeof p?.text === 'string' ? p.text : typeof p?.value === 'string' ? p.value : ''))
+        .join('')
+        .trim();
+      if (text) return text;
+    }
   }
   return null;
 }
@@ -362,20 +370,25 @@ export async function scanCodexPrompts(
     }
     const project = folderName(cwd);
 
-    // Build map: line index → next assistant reply (first assistant message after each user message)
+    // Build map: line index → accumulated assistant reply until the next user message
     const parsedObjs = lines.map((l) => { try { return JSON.parse(l); } catch { return null; } });
     const indexToResponse = new Map<number, string>();
+    const responseAccumulator = new Map<number, string[]>();
     let lastUserIndex = -1;
     for (let i = 0; i < lines.length; i++) {
       if (parseCodexLine(lines[i])) {
         lastUserIndex = i;
-      } else if (lastUserIndex >= 0 && !indexToResponse.has(lastUserIndex)) {
+      } else if (lastUserIndex >= 0) {
         const assistantText = extractCodexAssistantText(parsedObjs[i]);
         if (assistantText) {
-          indexToResponse.set(lastUserIndex, assistantText);
-          lastUserIndex = -1;
+          const parts = responseAccumulator.get(lastUserIndex) ?? [];
+          parts.push(assistantText);
+          responseAccumulator.set(lastUserIndex, parts);
         }
       }
+    }
+    for (const [idx, parts] of responseAccumulator.entries()) {
+      indexToResponse.set(idx, parts.join('\n\n'));
     }
 
     lines.forEach((line, index) => {
@@ -446,13 +459,20 @@ export async function scanClaudeCodePrompts(
       }
       const lines = content.split('\n');
 
-      // First pass: build parentUuid → assistant reply map
-      const responses = new Map<string, string>();
+      // First pass: build parentUuid → assistant reply map (accumulate across multiple turns)
+      const responseAccumulator = new Map<string, string[]>();
       for (const line of lines) {
         if (!line.trim()) continue;
         const assistant = parseClaudeCodeAssistantLine(line);
-        if (assistant) responses.set(assistant.parentUuid, assistant.text);
+        if (assistant) {
+          const parts = responseAccumulator.get(assistant.parentUuid) ?? [];
+          parts.push(assistant.text);
+          responseAccumulator.set(assistant.parentUuid, parts);
+        }
       }
+      const responses = new Map(
+        [...responseAccumulator.entries()].map(([uuid, parts]) => [uuid, parts.join('\n\n')]),
+      );
 
       // Second pass: emit new prompts, and collect response updates for already-imported ones
       for (const line of lines) {
