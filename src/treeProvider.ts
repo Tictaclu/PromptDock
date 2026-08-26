@@ -127,8 +127,9 @@ export class ImportedPromptItem extends vscode.TreeItem {
   constructor(readonly prompt: ImportedPrompt) {
     super(prompt.name, vscode.TreeItemCollapsibleState.None);
     this.contextValue = 'importedPrompt';
-    this.description = new Date(prompt.usedAt).toLocaleString();
-    this.tooltip = new vscode.MarkdownString(prompt.content);
+    const d = new Date(prompt.usedAt);
+    this.description = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    this.tooltip = new vscode.MarkdownString(`${prompt.name}\n\n${d.toLocaleString()}\n\n---\n\n${prompt.content}`);
     this.iconPath = new vscode.ThemeIcon('comment-discussion', new vscode.ThemeColor(SOURCE_COLORS[prompt.source]));
     this.command = {
       command: 'promptdock.usePrompt',
