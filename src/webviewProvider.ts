@@ -1028,6 +1028,18 @@ function renderPanelHtml(cspSource: string): string {
     padding: 2px 5px;
     width: 100%;
   }
+  .prompt-title-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .prompt-title-edit-row .prompt-title-input {
+    margin-bottom: 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .prompt-title-save-btn { flex-shrink: 0; }
   .prompt-content {
     font-size: 11px;
     line-height: 1.55;
@@ -1199,24 +1211,35 @@ function renderPanelHtml(cspSource: string): string {
             input.type = 'text';
             input.className = 'prompt-title-input';
             input.value = titleEl.textContent;
-            titleRow.replaceWith(input);
+            const editRow = el('div', 'prompt-title-edit-row');
+            const saveBtn = el('button', 'prompt-title-save-btn card-edit-save', 'Save');
+            saveBtn.title = 'Save title';
+            editRow.appendChild(input);
+            editRow.appendChild(saveBtn);
+            titleRow.replaceWith(editRow);
             input.focus();
             input.select();
-            function commit() {
-              const newName = input.value.trim();
-              if (newName && newName !== row.name) {
-                titleEl.textContent = newName;
-                row.name = newName;
-                if (isPreset) {
-                  vscode.postMessage({ type: 'renamePreset', id: row.id, name: newName, content: card.dataset.content });
-                } else {
-                  vscode.postMessage({ type: 'updateTemplate', id: row.id, name: newName, content: card.dataset.content });
+            let settled = false;
+            function finish(save) {
+              if (settled) return;
+              settled = true;
+              if (save) {
+                const newName = input.value.trim();
+                if (newName && newName !== row.name) {
+                  titleEl.textContent = newName;
+                  row.name = newName;
+                  if (isPreset) {
+                    vscode.postMessage({ type: 'renamePreset', id: row.id, name: newName, content: card.dataset.content });
+                  } else {
+                    vscode.postMessage({ type: 'updateTemplate', id: row.id, name: newName, content: card.dataset.content });
+                  }
                 }
               }
-              input.replaceWith(titleRow);
+              editRow.replaceWith(titleRow);
             }
-            input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } else if (ev.key === 'Escape') { input.replaceWith(titleRow); } });
-            input.addEventListener('blur', commit);
+            saveBtn.addEventListener('click', (ev) => { ev.preventDefault(); finish(true); });
+            input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); finish(true); } else if (ev.key === 'Escape') { finish(false); } });
+            input.addEventListener('blur', () => finish(true));
           });
           titleRow.appendChild(editTitleBtn);
         }
