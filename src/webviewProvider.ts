@@ -1650,15 +1650,25 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
       if (preset) {
         const folderName = PRESET_CATEGORY_TO_FOLDER[preset.category];
         const folderId = folderName ? storage.getFolders().find((f) => f.name === folderName)?.id : undefined;
-        await storage.createTemplate(message.name as string, message.content as string, folderId);
-        await storage.dismissPreset(rawId);
+        suppressSectionPanelPost = true;
+        try {
+          await storage.createTemplate(message.name as string, message.content as string, folderId);
+          await storage.dismissPreset(rawId);
+        } finally {
+          suppressSectionPanelPost = false;
+        }
         vscode.window.setStatusBarMessage(`PromptDock: Renamed "${preset.name}" to "${message.name}"`, 3000);
       }
       return;
     }
     if (message?.type === 'updateTemplate') {
       const rawId = (message.id as string).replace(/^template:/, '');
-      await storage.updateTemplate(rawId, { name: message.name, content: message.content });
+      suppressSectionPanelPost = true;
+      try {
+        await storage.updateTemplate(rawId, { name: message.name, content: message.content });
+      } finally {
+        suppressSectionPanelPost = false;
+      }
       return;
     }
     if (message?.type === 'sync') {
