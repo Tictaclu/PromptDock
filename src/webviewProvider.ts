@@ -1312,7 +1312,6 @@ function renderPanelHtml(cspSource: string): string {
         if (!isAdded) {
           insertBtn.addEventListener('click', () => {
             addedPromptIds.add(row.id);
-            suppressRenderUntil = Date.now() + 2000;
             vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
             insertBtn.disabled = true;
             insertBtn.querySelector('.btn-icon').textContent = '✓';
@@ -1400,7 +1399,6 @@ function renderPanelHtml(cspSource: string): string {
     const addedPromptIds = new Set();
     const expandedSections = new Set();
     let searchDebounceTimer;
-    let suppressRenderUntil = 0;
 
     function render() {
       const app = document.getElementById('app');
@@ -1523,12 +1521,8 @@ function renderPanelHtml(cspSource: string): string {
       if (msg.type === 'state') {
         state = msg.state;
         sectionKey = msg.section;
-        if (Date.now() < suppressRenderUntil) {
-          // State-only update after addTemplate — button UI already handled locally, skip re-render
-        } else {
-          render();
-          if (msg.scrollTo) scrollToPrompt(msg.scrollTo);
-        }
+        render();
+        if (msg.scrollTo) scrollToPrompt(msg.scrollTo);
       }
       if (msg.type === 'scrollTo') scrollToPrompt(msg.promptId);
     });
@@ -1541,6 +1535,7 @@ function renderPanelHtml(cspSource: string): string {
 
 let sharedSectionPanel: vscode.WebviewPanel | undefined;
 let sharedSectionCurrentSection = 'templates';
+let suppressSectionPanelPost = false;
 
 /** Opens the shared detached webview panel. Reuses the existing panel and switches its section if already open. */
 function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: string, scrollToId?: string): void {
@@ -1569,7 +1564,7 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
   let initialStateSent = false;
   const sendInitial = () => { if (!initialStateSent) { initialStateSent = true; post(); } };
 
-  const changeListener = storage.onDidChange(post);
+  const changeListener = storage.onDidChange(() => { if (!suppressSectionPanelPost) post(); });
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
   panel.onDidChangeViewState(({ webviewPanel }) => { if (webviewPanel.visible) post(); });
 
@@ -1598,15 +1593,20 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
           return;
         }
         let folderId: string | undefined;
-        if (sharedSectionCurrentSection !== 'templates') {
-          const folderName = SOURCE_LABELS[sharedSectionCurrentSection as PromptSource];
-          let folder = storage.getFolders().find((f) => f.name === folderName);
-          if (!folder) {
-            folder = await storage.createFolder(folderName);
+        suppressSectionPanelPost = true;
+        try {
+          if (sharedSectionCurrentSection !== 'templates') {
+            const folderName = SOURCE_LABELS[sharedSectionCurrentSection as PromptSource];
+            let folder = storage.getFolders().find((f) => f.name === folderName);
+            if (!folder) {
+              folder = await storage.createFolder(folderName);
+            }
+            folderId = folder.id;
           }
-          folderId = folder.id;
+          await storage.createTemplate(base.name, content, folderId);
+        } finally {
+          suppressSectionPanelPost = false;
         }
-        await storage.createTemplate(base.name, content, folderId);
         vscode.window.setStatusBarMessage(`PromptDock: "${base.name}" added to My Templates`, 3000);
       }
       return;
