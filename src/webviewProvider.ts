@@ -1566,7 +1566,13 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
 
   const changeListener = storage.onDidChange(() => { if (!suppressSectionPanelPost) post(); });
   panel.onDidDispose(() => { changeListener.dispose(); sharedSectionPanel = undefined; });
-  panel.onDidChangeViewState(({ webviewPanel }) => { if (webviewPanel.visible) post(); });
+  // Only re-sync when the panel goes from hidden→visible (retainContextWhenHidden keeps state
+  // current while hidden; firing on every focus change caused collapses after title edits).
+  let panelWasVisible = true;
+  panel.onDidChangeViewState(({ webviewPanel }) => {
+    if (webviewPanel.visible && !panelWasVisible) post();
+    panelWasVisible = webviewPanel.visible;
+  });
 
   // Fallback: send state after 300ms in case 'ready' message is missed
   setTimeout(sendInitial, 300);
