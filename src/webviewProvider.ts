@@ -1180,7 +1180,10 @@ function renderPanelHtml(cspSource: string): string {
     }
 
     function scrollToPrompt(promptId) {
-      document.querySelectorAll('.folder-section.collapsed').forEach((s) => s.classList.remove('collapsed'));
+      document.querySelectorAll('.folder-section.collapsed').forEach((s) => {
+        s.classList.remove('collapsed');
+        if (s.dataset.sectionKey) expandedSections.add(s.dataset.sectionKey);
+      });
       requestAnimationFrame(() => {
         document.querySelectorAll('.prompt-card.highlight').forEach((c) => c.classList.remove('highlight'));
         const card = document.querySelector('[data-prompt-id="' + promptId + '"]');
@@ -1309,6 +1312,7 @@ function renderPanelHtml(cspSource: string): string {
         if (!isAdded) {
           insertBtn.addEventListener('click', () => {
             addedPromptIds.add(row.id);
+            suppressRenderUntil = Date.now() + 2000;
             vscode.postMessage({ type: 'addTemplate', id: row.id, content: card.dataset.content });
             insertBtn.disabled = true;
             insertBtn.querySelector('.btn-icon').textContent = '✓';
@@ -1347,6 +1351,7 @@ function renderPanelHtml(cspSource: string): string {
 
       const isExpanded = query ? true : expandedSections.has(key);
       const section = el('div', 'folder-section' + (isExpanded ? '' : ' collapsed'));
+      section.dataset.sectionKey = key;
 
       const titleEl = el('div', 'folder-title');
       titleEl.title = 'Click to expand or collapse';
@@ -1395,6 +1400,7 @@ function renderPanelHtml(cspSource: string): string {
     const addedPromptIds = new Set();
     const expandedSections = new Set();
     let searchDebounceTimer;
+    let suppressRenderUntil = 0;
 
     function render() {
       const app = document.getElementById('app');
@@ -1470,6 +1476,7 @@ function renderPanelHtml(cspSource: string): string {
         for (const project of source.projects) {
           const projectKey = 'project:' + project.name;
           const projectSection = el('div', 'folder-section' + (expandedSections.has(projectKey) ? '' : ' collapsed'));
+          projectSection.dataset.sectionKey = projectKey;
 
           const projectTitle = el('div', 'folder-title');
           projectTitle.title = 'Click to expand or collapse';
@@ -1516,8 +1523,12 @@ function renderPanelHtml(cspSource: string): string {
       if (msg.type === 'state') {
         state = msg.state;
         sectionKey = msg.section;
-        render();
-        if (msg.scrollTo) scrollToPrompt(msg.scrollTo);
+        if (Date.now() < suppressRenderUntil) {
+          // State-only update after addTemplate — button UI already handled locally, skip re-render
+        } else {
+          render();
+          if (msg.scrollTo) scrollToPrompt(msg.scrollTo);
+        }
       }
       if (msg.type === 'scrollTo') scrollToPrompt(msg.promptId);
     });
