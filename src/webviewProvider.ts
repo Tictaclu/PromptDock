@@ -1581,7 +1581,7 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
   // current while hidden; firing on every focus change caused collapses after title edits).
   let panelWasVisible = true;
   panel.onDidChangeViewState(({ webviewPanel }) => {
-    if (webviewPanel.visible && !panelWasVisible) post();
+    if (webviewPanel.visible && !panelWasVisible && !suppressSectionPanelPost) post();
     panelWasVisible = webviewPanel.visible;
   });
 
@@ -1629,34 +1629,51 @@ function openSectionPanel(extensionUri: vscode.Uri, storage: Storage, section: s
       return;
     }
     if (message?.type === 'newTemplate') {
-      const name = await vscode.window.showInputBox({
-        prompt: 'New prompt name',
-        placeHolder: 'e.g. My Prompt',
-        validateInput: (v) => v.trim() ? null : 'Name cannot be empty',
-      });
-      if (name?.trim()) {
-        await storage.createTemplate(name.trim(), '', message.folderId as string | undefined);
+      suppressSectionPanelPost = true;
+      try {
+        const name = await vscode.window.showInputBox({
+          prompt: 'New prompt name',
+          placeHolder: 'e.g. My Prompt',
+          validateInput: (v) => v.trim() ? null : 'Name cannot be empty',
+        });
+        if (name?.trim()) {
+          await storage.createTemplate(name.trim(), '', message.folderId as string | undefined);
+        }
+      } finally {
+        suppressSectionPanelPost = false;
       }
       return;
     }
     if (message?.type === 'deleteTemplate') {
       const rawId = (message.id as string).replace(/^template:/, '');
       const template = storage.getTemplates().find((t) => t.id === rawId);
-      const deletedFolder = await storage.ensureDeletedFolder();
-      if (template && template.folderId === deletedFolder.id) {
-        await storage.deleteTemplate(rawId);
-      } else {
-        await storage.updateTemplate(rawId, { folderId: deletedFolder.id });
+      suppressSectionPanelPost = true;
+      try {
+        const deletedFolder = await storage.ensureDeletedFolder();
+        if (template && template.folderId === deletedFolder.id) {
+          await storage.deleteTemplate(rawId);
+        } else {
+          await storage.updateTemplate(rawId, { folderId: deletedFolder.id });
+        }
+      } finally {
+        suppressSectionPanelPost = false;
       }
+      post();
       return;
     }
     if (message?.type === 'deletePreset') {
       const rawId = (message.id as string).replace(/^preset:/, '');
       const preset = BUILTIN_PRESETS.find((p) => p.id === rawId);
       if (preset) {
-        const deletedFolder = await storage.ensureDeletedFolder();
-        await storage.createTemplate(preset.name, preset.content, deletedFolder.id);
-        await storage.dismissPreset(rawId);
+        suppressSectionPanelPost = true;
+        try {
+          const deletedFolder = await storage.ensureDeletedFolder();
+          await storage.createTemplate(preset.name, preset.content, deletedFolder.id);
+          await storage.dismissPreset(rawId);
+        } finally {
+          suppressSectionPanelPost = false;
+        }
+        post();
         vscode.window.setStatusBarMessage(`PromptDock: Moved "${preset.name}" to Deleted`, 3000);
       }
       return;
