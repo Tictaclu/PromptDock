@@ -812,7 +812,12 @@ export class PromptDockWebviewProvider implements vscode.WebviewViewProvider {
       }
       if (message?.type === 'updateTemplate') {
         const rawId = (message.id as string).slice('template:'.length);
-        await this.storage.updateTemplate(rawId, { name: message.name, content: message.content });
+        suppressSectionPanelPost = true;
+        try {
+          await this.storage.updateTemplate(rawId, { name: message.name, content: message.content });
+        } finally {
+          suppressSectionPanelPost = false;
+        }
         return;
       }
       if (message?.type === 'moveTemplate') {
@@ -1403,6 +1408,11 @@ function renderPanelHtml(cspSource: string): string {
     function render() {
       const app = document.getElementById('app');
       if (!app) return;
+      // Capture scroll position and any expanded sections the Set may have missed
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+      app.querySelectorAll('.folder-section:not(.collapsed)[data-section-key]').forEach((s) => {
+        expandedSections.add(s.dataset.sectionKey);
+      });
       app.innerHTML = '';
       if (!state || !sectionKey) { app.appendChild(el('div', 'empty', 'Loading…')); return; }
 
@@ -1514,6 +1524,7 @@ function renderPanelHtml(cspSource: string): string {
       }
 
       if (query) input.focus();
+      if (scrollTop) { document.documentElement.scrollTop = scrollTop; document.body.scrollTop = scrollTop; }
     }
 
     window.addEventListener('message', (event) => {
