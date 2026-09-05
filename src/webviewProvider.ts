@@ -6,10 +6,21 @@ import { ImportedPrompt, PromptSource, SOURCE_LABELS } from './types';
 const SOURCE_ORDER: PromptSource[] = ['claude-code', 'copilot-chat', 'codex'];
 const SOURCE_ICONS: Record<PromptSource, string> = { 'claude-code': '🟠', 'copilot-chat': '🔵', codex: '🟢' };
 
-function resolveContent(content: string): string {
+/** Resolves {selection} and prompts for each unique {input:Label} placeholder. Returns undefined if the user cancels an input. */
+async function resolveContent(content: string): Promise<string | undefined> {
   const editor = vscode.window.activeTextEditor;
   const selectionText = editor ? editor.document.getText(editor.selection) : '';
-  return content.replace(/\{selection\}/g, selectionText);
+  let resolved = content.replace(/\{selection\}/g, selectionText);
+
+  const labels = Array.from(new Set(Array.from(resolved.matchAll(/\{input:([^}]+)\}/g), (m) => m[1])));
+  for (const label of labels) {
+    const value = await vscode.window.showInputBox({ prompt: label, placeHolder: `Value for ${label}` });
+    if (value === undefined) {
+      return undefined;
+    }
+    resolved = resolved.split(`{input:${label}}`).join(value);
+  }
+  return resolved;
 }
 
 async function copyToClipboard(text: string): Promise<void> {
@@ -32,7 +43,10 @@ function getDefaultAction(): 'copyAndInsert' | 'copyOnly' | 'insertOnly' {
 }
 
 async function usePromptContent(name: string, rawContent: string, action: 'copy' | 'insert' | 'default'): Promise<void> {
-  const content = resolveContent(rawContent);
+  const content = await resolveContent(rawContent);
+  if (content === undefined) {
+    return;
+  }
   const wantCopy = action === 'copy' || (action === 'default' && getDefaultAction() !== 'insertOnly');
   const wantInsert = action === 'insert' || (action === 'default' && getDefaultAction() !== 'copyOnly');
 

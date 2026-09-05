@@ -14,10 +14,21 @@ import {
   TemplateItem,
 } from './treeProvider';
 
-function resolveContent(content: string): string {
+/** Resolves {selection} and prompts for each unique {input:Label} placeholder. Returns undefined if the user cancels an input. */
+async function resolveContent(content: string): Promise<string | undefined> {
   const editor = vscode.window.activeTextEditor;
   const selectionText = editor ? editor.document.getText(editor.selection) : '';
-  return content.replace(/\{selection\}/g, selectionText);
+  let resolved = content.replace(/\{selection\}/g, selectionText);
+
+  const labels = Array.from(new Set(Array.from(resolved.matchAll(/\{input:([^}]+)\}/g), (m) => m[1])));
+  for (const label of labels) {
+    const value = await vscode.window.showInputBox({ prompt: label, placeHolder: `Value for ${label}` });
+    if (value === undefined) {
+      return undefined;
+    }
+    resolved = resolved.split(`{input:${label}}`).join(value);
+  }
+  return resolved;
 }
 
 async function copyToClipboard(text: string): Promise<void> {
@@ -87,7 +98,7 @@ export function registerCommands(
       return;
     }
     const content = await vscode.window.showInputBox({
-      prompt: 'Prompt content (use {selection} to insert the selected code)',
+      prompt: 'Prompt content (use {selection} for the selected code, {input:Label} to prompt for a value)',
       placeHolder: 'Explain what this code does:\n\n{selection}',
     });
     if (content === undefined) {
@@ -344,7 +355,10 @@ async function useNode(
     return;
   }
 
-  const content = resolveContent(rawContent);
+  const content = await resolveContent(rawContent);
+  if (content === undefined) {
+    return;
+  }
 
   if (actions.copy) {
     await copyToClipboard(content);
