@@ -1295,6 +1295,11 @@ function renderPanelHtml(cspSource: string): string {
         if (newContent) {
           card.dataset.content = newContent;
           content.textContent = newContent;
+          if (row.id.startsWith('template:')) {
+            vscode.postMessage({ type: 'updateTemplate', id: row.id, name: row.name, content: newContent });
+          } else if (row.id.startsWith('preset:')) {
+            vscode.postMessage({ type: 'renamePreset', id: row.id, name: row.name, content: newContent });
+          }
         }
         card.classList.remove('card-editing');
         addedPromptIds.delete(row.id);
