@@ -502,6 +502,59 @@ export async function scanClaudeCodePrompts(
   return { prompts: results, responseUpdates };
 }
 
+/** Parses one Copilot Chat session file's requests into ImportedPrompt candidates, appending into the shared accumulators. */
+async function scanCopilotSessionDir(
+  sessionsDir: string,
+  project: string,
+  alreadyImported: ReadonlySet<string>,
+  cache: FileScanCache,
+  seenIds: Set<string>,
+  results: ImportedPrompt[],
+  responseUpdates: Map<string, string>,
+): Promise<void> {
+  const files = await readDirSafe(sessionsDir);
+  for (const file of files) {
+    if (!file.endsWith('.jsonl') && !file.endsWith('.json')) {
+      continue;
+    }
+    const filePath = path.join(sessionsDir, file);
+    if (await cache.shouldSkip(filePath)) {
+      continue;
+    }
+    const content = await readFileSafe(filePath);
+    if (!content) {
+      continue;
+    }
+    let data: any;
+    try {
+      const firstLine = content.trimStart().split('\n')[0];
+      const parsed = JSON.parse(firstLine);
+      data = parsed?.v ?? parsed;
+    } catch {
+      continue;
+    }
+    const requests: any[] = Array.isArray(data?.requests) ? data.requests : [];
+    const fallbackTimestamp = typeof data?.lastMessageDate === 'number' ? data.lastMessageDate : Date.now();
+    const sessionId: string = data.sessionId ?? file;
+    requests.forEach((request, index) => {
+      const text = extractCopilotRequestText(request);
+      if (!text) {
+        return;
+      }
+      const id = `copilot-chat:${sessionId}:${request.requestId ?? index}`;
+      const timestamp = typeof request.timestamp === 'number' ? request.timestamp : fallbackTimestamp;
+      const response = extractCopilotResponseText(request) ?? undefined;
+      if (alreadyImported.has(id)) {
+        if (response) responseUpdates.set(id, response);
+        return;
+      }
+      if (seenIds.has(id)) return;
+      seenIds.add(id);
+      results.push({ id, name: toName(text), content: text, response, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
+    });
+  }
+}
+
 export async function scanCopilotChatPrompts(
   vsCodeUserDir: string,
   alreadyImported: ReadonlySet<string>,
@@ -517,47 +570,16 @@ export async function scanCopilotChatPrompts(
     const wsDirPath = path.join(workspaceStorageDir, wsDir);
     const project = resolveWorkspaceProjectName(await readFileSafe(path.join(wsDirPath, 'workspace.json')));
 
-    const chatSessionsDir = path.join(wsDirPath, 'chatSessions');
-    const files = await readDirSafe(chatSessionsDir);
-    for (const file of files) {
-      if (!file.endsWith('.jsonl') && !file.endsWith('.json')) {
-        continue;
-      }
-      const filePath = path.join(chatSessionsDir, file);
-      if (await cache.shouldSkip(filePath)) {
-        continue;
-      }
-      const content = await readFileSafe(filePath);
-      if (!content) {
-        continue;
-      }
-      let data: any;
-      try {
-        const firstLine = content.trimStart().split('\n')[0];
-        const parsed = JSON.parse(firstLine);
-        data = parsed?.v ?? parsed;
-      } catch {
-        continue;
-      }
-      const requests: any[] = Array.isArray(data?.requests) ? data.requests : [];
-      const fallbackTimestamp = typeof data?.lastMessageDate === 'number' ? data.lastMessageDate : Date.now();
-      const sessionId: string = data.sessionId ?? file;
-      requests.forEach((request, index) => {
-        const text = extractCopilotRequestText(request);
-        if (!text) {
-          return;
-        }
-        const id = `copilot-chat:${sessionId}:${request.requestId ?? index}`;
-        const timestamp = typeof request.timestamp === 'number' ? request.timestamp : fallbackTimestamp;
-        const response = extractCopilotResponseText(request) ?? undefined;
-        if (alreadyImported.has(id)) {
-          if (response) responseUpdates.set(id, response);
-          return;
-        }
-        if (seenIds.has(id)) return;
-        seenIds.add(id);
-        results.push({ id, name: toName(text), content: text, response, usedAt: timestamp, source: 'copilot-chat', project, sessionId });
-      });
+    // Two known locations for Copilot Chat session files: the classic per-workspace
+    // "chatSessions" folder, and newer versions that nest it under the extension's own
+    // storage folder (GitHub.copilot-chat) instead.
+    const candidateDirs = [
+      path.join(wsDirPath, 'chatSessions'),
+      path.join(wsDirPath, 'GitHub.copilot-chat', 'chatSessions'),
+      path.join(wsDirPath, 'GitHub.copilot-chat'),
+    ];
+    for (const dir of candidateDirs) {
+      await scanCopilotSessionDir(dir, project, alreadyImported, cache, seenIds, results, responseUpdates);
     }
   }
   return { prompts: results, responseUpdates };
