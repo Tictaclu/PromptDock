@@ -585,6 +585,97 @@ export async function scanCopilotChatPrompts(
   return { prompts: results, responseUpdates };
 }
 
+/**
+ * Scans GitHub Copilot CLI's local history — a separate agentic product from the Copilot Chat
+ * extension. Its transcripts never live under VS Code's workspaceStorage at all; each session gets
+ * its own event-log file at ~/.copilot/session-state/<sessionId>/events.jsonl, with a "user.message"
+ * event per prompt and one or more "assistant.message" events per reply (multiple agent steps/tool
+ * calls can precede the final text), all sharing the turn's interactionId. Reported under the same
+ * 'copilot-chat' source as the classic extension, since both are GitHub Copilot experiences.
+ */
+export async function scanCopilotCliPrompts(
+  alreadyImported: ReadonlySet<string>,
+  cache: FileScanCache,
+): Promise<ScanResult> {
+  const results: ImportedPrompt[] = [];
+  const responseUpdates = new Map<string, string>();
+  const seenIds = new Set<string>();
+  const root = path.join(os.homedir(), '.copilot', 'session-state');
+  const sessionDirs = await readDirSafe(root);
+
+  for (const sessionDir of sessionDirs) {
+    const filePath = path.join(root, sessionDir, 'events.jsonl');
+    if (await cache.shouldSkip(filePath)) {
+      continue;
+    }
+    const content = await readFileSafe(filePath);
+    if (!content) {
+      continue;
+    }
+
+    let project = UNKNOWN_PROJECT;
+    const prompts = new Map<string, { text: string; timestamp: number }>();
+    const replies = new Map<string, { turnId: string; text: string }[]>();
+
+    for (const line of content.split('\n')) {
+      if (!line.trim()) continue;
+      let obj: any;
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        continue;
+      }
+
+      if (obj?.type === 'session.start') {
+        const ctx = obj.data?.context;
+        project = folderName(ctx?.cwd ?? ctx?.gitRoot);
+        continue;
+      }
+      const interactionId = obj?.data?.interactionId;
+      if (!interactionId) continue;
+
+      if (obj.type === 'user.message') {
+        const text = typeof obj.data.content === 'string' ? obj.data.content.trim() : '';
+        if (!text) continue;
+        const timestamp = Date.parse(obj.timestamp);
+        prompts.set(interactionId, { text, timestamp: Number.isNaN(timestamp) ? Date.now() : timestamp });
+      } else if (obj.type === 'assistant.message') {
+        const text = typeof obj.data.content === 'string' ? obj.data.content.trim() : '';
+        if (!text) continue;
+        const list = replies.get(interactionId) ?? [];
+        list.push({ turnId: String(obj.data.turnId ?? '0'), text });
+        replies.set(interactionId, list);
+      }
+    }
+
+    for (const [interactionId, prompt] of prompts) {
+      const id = `copilot-chat:cli:${sessionDir}:${interactionId}`;
+      const replyParts = (replies.get(interactionId) ?? [])
+        .sort((a, b) => Number(a.turnId) - Number(b.turnId))
+        .map((r) => r.text);
+      const response = replyParts.length > 0 ? replyParts.join('\n\n') : undefined;
+
+      if (alreadyImported.has(id)) {
+        if (response) responseUpdates.set(id, response);
+        continue;
+      }
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
+      results.push({
+        id,
+        name: toName(prompt.text),
+        content: prompt.text,
+        response,
+        usedAt: prompt.timestamp,
+        source: 'copilot-chat',
+        project,
+        sessionId: sessionDir,
+      });
+    }
+  }
+  return { prompts: results, responseUpdates };
+}
+
 function summarizeByDate(candidates: ImportedPrompt[]): string {
   const byDate = new Map<string, Map<PromptSource, number>>();
   for (const c of candidates) {
@@ -616,15 +707,17 @@ export async function syncExternalPrompts(
     const vsCodeUserDir = path.join(context.globalStorageUri.fsPath, '..', '..');
     const cache = new FileScanCache(storage.getFileScanStats());
 
-    const [claudeCode, copilot, codex] = await Promise.all([
+    const [claudeCode, copilot, copilotCli, codex] = await Promise.all([
       scanClaudeCodePrompts(alreadyImported, cache),
       scanCopilotChatPrompts(vsCodeUserDir, alreadyImported, cache),
+      scanCopilotCliPrompts(alreadyImported, cache),
       scanCodexPrompts(alreadyImported, cache),
     ]);
-    const found = [...claudeCode.prompts, ...copilot.prompts, ...codex.prompts];
+    const found = [...claudeCode.prompts, ...copilot.prompts, ...copilotCli.prompts, ...codex.prompts];
     const allResponseUpdates = new Map([
       ...claudeCode.responseUpdates,
       ...copilot.responseUpdates,
+      ...copilotCli.responseUpdates,
       ...codex.responseUpdates,
     ]);
 
